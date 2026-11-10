@@ -31,6 +31,7 @@ export type CardEntry = {
   english: string | null;
   imageUrl: string | null;
   speak: string;
+  example?: string | null;
 };
 
 export type LeitnerCard = {
