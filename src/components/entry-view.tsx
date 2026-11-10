@@ -8,6 +8,7 @@ import { Brand } from '@/constants/theme';
 import type { Entry } from '@/lib/api';
 
 import { SpeakButtons } from './speak-button';
+import { WordPopup } from './word-popup';
 
 const TYPE_FA: Record<string, string> = {
   Substantiv: 'اسم',
@@ -30,6 +31,35 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** جمله‌ی مثال با کلمه‌های قابل لمس: روی هر کلمه بزنی، پاپ‌آپ معنی‌اش باز می‌شود */
+function TappableSentence({
+  text,
+  onWord,
+}: {
+  text: string;
+  onWord: (w: string) => void;
+}) {
+  const tokens = text.split(/(\s+)/);
+  return (
+    <Text style={[styles.line, styles.ltr]}>
+      {'• '}
+      {tokens.map((tok, i) => {
+        if (!tok || /^\s+$/.test(tok)) return tok;
+        // نشانه‌گذاری‌های دو سرِ توکن (نقطه، ویرگول، گیومه…) جزو کلمه نیستند
+        const cleaned = tok.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, '');
+        if (cleaned.length >= 2 && /\p{L}/u.test(cleaned)) {
+          return (
+            <Text key={i} style={styles.tappable} onPress={() => onWord(cleaned)}>
+              {tok}
+            </Text>
+          );
+        }
+        return tok;
+      })}
+    </Text>
+  );
+}
+
 export function EntryView({
   entry,
   onAdd,
@@ -40,6 +70,7 @@ export function EntryView({
   const [interval, setInterval] = useState<1 | 3 | 7>(1);
   const [added, setAdded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [popupWord, setPopupWord] = useState<string | null>(null);
 
   const add = async () => {
     if (!onAdd || busy) return;
@@ -90,19 +121,16 @@ export function EntryView({
       {entry.examples.length ? (
         <Section title="💬 مثال‌ها">
           {entry.examples.map((x, i) => (
-            <Text key={i} style={[styles.line, styles.ltr]}>
-              • {x}
-            </Text>
+            <TappableSentence key={i} text={x} onWord={(w) => setPopupWord(w)} />
           ))}
+          <Text style={styles.hint}>💡 روی هر کلمه بزن تا معنیش رو ببینی</Text>
         </Section>
       ) : null}
 
       {entry.dwdsExamples.length ? (
         <Section title="📚 مثال (DWDS)">
           {entry.dwdsExamples.map((x, i) => (
-            <Text key={i} style={[styles.line, styles.ltr]}>
-              • {x}
-            </Text>
+            <TappableSentence key={i} text={x} onWord={(w) => setPopupWord(w)} />
           ))}
         </Section>
       ) : null}
@@ -148,12 +176,20 @@ export function EntryView({
           )}
         </View>
       ) : null}
+
+      <WordPopup word={popupWord} onClose={() => setPopupWord(null)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  image: { width: '100%', height: 210, borderRadius: Brand.radius, backgroundColor: Brand.soft },
+  image: {
+    width: '100%',
+    aspectRatio: 16 / 10,
+    maxHeight: 340,
+    borderRadius: Brand.radius,
+    backgroundColor: Brand.soft,
+  },
   headRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14, flexWrap: 'wrap' },
   word: { fontSize: 30, fontWeight: '800', color: Brand.ink, writingDirection: 'ltr' },
   ipa: { fontSize: 15, color: Brand.secondary, writingDirection: 'ltr' },
@@ -174,6 +210,8 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Brand.ink, marginBottom: 6 },
   line: { fontSize: 15, lineHeight: 24, color: '#3D3D5C' },
   ltr: { writingDirection: 'ltr', textAlign: 'left' },
+  tappable: { color: Brand.primaryDeep },
+  hint: { fontSize: 12.5, color: Brand.secondary, marginTop: 8 },
   addBox: {
     marginTop: 22,
     backgroundColor: Brand.soft,
