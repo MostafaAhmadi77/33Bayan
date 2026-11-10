@@ -3,11 +3,12 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math
 
 S = 2048  # بوم بزرگ برای آنتی‌الیاسینگ، خروجی نهایی 1024
-VIOLET_TOP = (139, 113, 255)
-VIOLET_BOT = (104, 69, 232)
-WHITE = (255, 255, 255)
+BG_TOP = (253, 251, 246)
+BG_BOT = (243, 238, 226)
+INK = (17, 17, 17)
+GERMAN_RED = (221, 0, 0)
 GOLD = (255, 206, 0)
-PAGE_LINE = (178, 160, 255)
+PAGE_LINE = (253, 246, 230)
 
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
@@ -34,7 +35,7 @@ def glyph(scale=1.0):
     bbox = d.textbbox((0, 0), txt, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     ty = int(S * 0.16)
-    d.text((cx - tw / 2 - bbox[0], ty - bbox[1]), txt, font=font, fill=WHITE)
+    d.text((cx - tw / 2 - bbox[0], ty - bbox[1]), txt, font=font, fill=INK)
     # کتاب باز
     bw, bh = int(760 * scale), int(430 * scale)
     bx0, by0 = cx - bw // 2, int(S * 0.56)
@@ -49,9 +50,9 @@ def glyph(scale=1.0):
             ybot = by1 - int(math.sin(t * math.pi) * 44 * scale)
             pts_top.append((x, ytop)); pts_bot.append((x, ybot))
         return pts_top + pts_bot[::-1]
-    d.polygon(page(True), fill=WHITE)
-    d.polygon(page(False), fill=WHITE)
-    d.line([(cx, by0 + 6), (cx, by1 - int(40 * scale))], fill=(150, 128, 245), width=int(10 * scale))
+    d.polygon(page(True), fill=GERMAN_RED)
+    d.polygon(page(False), fill=GERMAN_RED)
+    d.line([(cx, by0 + 6), (cx, by1 - int(40 * scale))], fill=(253, 246, 230), width=int(10 * scale))
     # خطوط متن روی صفحات
     for side in (-1, 1):
         for i, yy in enumerate((0.30, 0.48, 0.66)):
@@ -67,18 +68,25 @@ def glyph(scale=1.0):
     return g
 
 # ۱) آیکون کامل iOS/استور
-bg = gradient(S, VIOLET_TOP, VIOLET_BOT).convert("RGBA")
+bg = gradient(S, BG_TOP, BG_BOT).convert("RGBA")
 glow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
 gd = ImageDraw.Draw(glow)
-gd.ellipse([S*0.08, S*0.02, S*0.92, S*0.86], fill=(255, 255, 255, 46))
+gd.ellipse([S*0.08, S*0.02, S*0.92, S*0.86], fill=(255, 206, 0, 26))
 bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(120)))
 bg.alpha_composite(glyph(1.0))
+d2 = ImageDraw.Draw(bg)
+d2.rectangle([0, S-54, S, S-36], fill=(17, 17, 17))
+d2.rectangle([0, S-36, S, S-18], fill=(221, 0, 0))
+d2.rectangle([0, S-18, S, S], fill=(255, 206, 0))
 bg.convert("RGB").resize((1024, 1024), Image.LANCZOS).save("assets/images/icon.png")
 bg.convert("RGB").resize((256, 256), Image.LANCZOS).save("assets/images/favicon.png")
 
 # ۲) فورگراند تطبیقی اندروید (نشانه کوچک‌تر، در ناحیه امن) + مونوکروم + اسپلش
 fg = glyph(0.60)
 fg.resize((1024, 1024), Image.LANCZOS).save("assets/images/android-icon-foreground.png")
-fg.resize((1024, 1024), Image.LANCZOS).save("assets/images/android-icon-monochrome.png")
+mono = glyph(0.60).split()[3].point(lambda a: a)
+mono_img = Image.new("RGBA", (S, S), (17, 17, 17, 0))
+mono_img.putalpha(mono)
+mono_img.resize((1024, 1024), Image.LANCZOS).save("assets/images/android-icon-monochrome.png")
 glyph(0.92).resize((1024, 1024), Image.LANCZOS).save("assets/images/splash-icon.png")
 print("icons written")
