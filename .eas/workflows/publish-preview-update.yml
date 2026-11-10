@@ -1,0 +1,12 @@
+name: Publish preview update
+on:
+  workflow_dispatch:
+jobs:
+  publish_update:
+    name: Publish preview update
+    type: update
+    environment: preview
+    params:
+      channel: preview
+      message: "33Bayan 1.2.0"
+      platform: all
