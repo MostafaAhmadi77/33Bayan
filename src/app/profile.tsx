@@ -1,9 +1,9 @@
-// صفحه‌ی پروفایل: سربرگ 33Bayan، هدف روزانه، فهرست واژگان لایتنر (با حذف)
-// و معرفی/پیوند ربات بله
+// صفحه‌ی پروفایل: سربرگ 33Bayan، هدف روزانه و فهرست واژگان لایتنر (با حذف)
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ScreenScroll } from '@/components/screen';
 import { Brand } from '@/constants/theme';
 import { leitnerList, leitnerRemove, type LeitnerCard } from '@/lib/api';
 import { getGoal, setGoal } from '@/lib/storage';
@@ -50,7 +50,7 @@ export default function ProfileScreen() {
   const now = Date.now();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScreenScroll>
       <Text style={styles.title}>پروفایل</Text>
 
       {/* سربرگ */}
@@ -106,28 +106,11 @@ export default function ProfileScreen() {
           </View>
         ))
       )}
-
-      {/* درباره */}
-      <View style={[styles.card, { marginTop: 18 }]}>
-        <Text style={styles.cardTitle}>درباره‌ی 33Bayan</Text>
-        <Text style={styles.aboutText}>
-          مغز این اپ همان ربات بله‌ی 33Bayan است؛ کلماتت روی سرور ذخیره می‌شوند و از هر دستگاهی در
-          دسترس‌اند. معنی‌ها از ویکی‌واژه و DWDS می‌آیند و قبل از نمایش، با هوش مصنوعی بازبینی
-          می‌شوند.
-        </Text>
-        <Pressable
-          onPress={() => Linking.openURL('https://ble.ir/32bayanbot')}
-          style={styles.botBtn}>
-          <Text style={styles.botBtnText}>🤖 ربات بله</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
   headerCard: {
     flexDirection: 'row',
@@ -202,13 +185,4 @@ const styles = StyleSheet.create({
   dueChip: { backgroundColor: '#FFF3D6', color: '#9A6B00' },
   deleteBtn: { padding: 6 },
   deleteText: { fontSize: 18 },
-  aboutText: { fontSize: 14, lineHeight: 23, color: '#3D3D5C' },
-  botBtn: {
-    backgroundColor: Brand.primary,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 14,
-  },
-  botBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

@@ -2,8 +2,9 @@
 // نمودار مرور ۷ روز اخیر و نشان‌های افتخار
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { ScreenScroll } from '@/components/screen';
 import { Brand } from '@/constants/theme';
 import { leitnerList, type LeitnerCard } from '@/lib/api';
 import { dayKey, getActivity, streakOf, type ActivityMap } from '@/lib/storage';
@@ -62,7 +63,7 @@ export default function ProgressScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScreenScroll>
       <Text style={styles.title}>پیشرفت من</Text>
 
       {/* XP */}
@@ -136,13 +137,11 @@ export default function ProgressScreen() {
           </View>
         ))}
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
   xpCard: {
     backgroundColor: Brand.primary,

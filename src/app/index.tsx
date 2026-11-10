@@ -1,9 +1,9 @@
 // صفحه‌ی خانه (به سبک Lingua): ادامه‌ی مرور، هدف امروز، دسترسی سریع
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ScreenScroll } from '@/components/screen';
 import { Brand } from '@/constants/theme';
 import { leitnerDue, leitnerList } from '@/lib/api';
 import { dayKey, getActivity, getGoal, getLastWord, streakOf, type ActivityMap } from '@/lib/storage';
@@ -60,8 +60,7 @@ export default function HomeScreen() {
   const hasDue = data.due > 0;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScreenScroll showsVerticalScrollIndicator={false}>
         {/* سربرگ */}
         <View style={styles.header}>
           <View>
@@ -124,14 +123,11 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.totalLine}>📦 تا حالا {data.total} کلمه توی جعبه‌ته</Text>
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 24 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   title: { fontSize: 26, fontWeight: '800', color: Brand.ink },
   subtitle: { fontSize: 15, color: Brand.secondary, marginTop: 4 },

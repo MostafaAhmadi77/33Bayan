@@ -1,3 +1,4 @@
+import { setAudioModeAsync } from 'expo-audio';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -15,6 +16,11 @@ export default function TabLayout() {
   useEffect(() => {
     I18nManager.allowRTL(true);
     if (!I18nManager.isRTL) I18nManager.forceRTL(true);
+  }, []);
+
+  // تلفظ باید حتی وقتی گوشی روی سایلنت است هم پخش شود
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

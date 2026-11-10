@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 
 import { EntryView } from '@/components/entry-view';
+import { ScreenScroll } from '@/components/screen';
 import { Brand } from '@/constants/theme';
 import {
   lookupGerman,
@@ -99,10 +99,7 @@ export default function ExploreScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
+    <ScreenScroll keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>دیکشنری آلمانی ⇄ فارسی</Text>
 
       {/* انتخاب جهت */}
@@ -222,13 +219,11 @@ export default function ExploreScreen() {
           ))}
         </View>
       ) : null}
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
   segment: {
     flexDirection: 'row',
