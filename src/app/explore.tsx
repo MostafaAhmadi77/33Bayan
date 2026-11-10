@@ -182,7 +182,7 @@ export default function ExploreScreen() {
       {/* نتیجه‌ی آلمانی → فارسی */}
       {status === 'result' && dir === 'de' && entry ? (
         <View style={styles.card}>
-          <EntryView entry={entry} onAdd={makeOnAdd(entry)} />
+          <EntryView entry={entry} onAdd={makeOnAdd(entry)} onLookupWord={(w) => search(w, 'de')} />
         </View>
       ) : null}
 
@@ -193,7 +193,7 @@ export default function ExploreScreen() {
             <Text style={styles.backText}>← برگشت به معادل‌ها</Text>
           </Pressable>
           <View style={styles.card}>
-            <EntryView entry={selected} onAdd={makeOnAdd(selected)} />
+            <EntryView entry={selected} onAdd={makeOnAdd(selected)} onLookupWord={(w) => search(w, 'de')} />
           </View>
         </View>
       ) : null}

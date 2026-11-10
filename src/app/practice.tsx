@@ -13,6 +13,8 @@ import {
 import { Brand } from '@/constants/theme';
 import { ScreenScroll } from '@/components/screen';
 import { SpeakButtons } from '@/components/speak-button';
+import { TappableSentence } from '@/components/tappable-sentence';
+import { WordPopup } from '@/components/word-popup';
 import { leitnerDue, leitnerReview, translate, type LeitnerCard } from '@/lib/api';
 import { logActivity } from '@/lib/storage';
 
@@ -21,6 +23,7 @@ type TranslateResult = { failed: boolean; text: string; from: string; to: string
 
 export default function PracticeScreen() {
   const [mode, setMode] = useState<Mode>('review');
+  const [popupWord, setPopupWord] = useState<string | null>(null);
 
   // ---- مرور لایتنر ----
   const [queue, setQueue] = useState<LeitnerCard[]>([]);
@@ -188,6 +191,13 @@ export default function PracticeScreen() {
                     {card.entry.english ? (
                       <Text style={[styles.meta, styles.ltr]}>{card.entry.english}</Text>
                     ) : null}
+                    {card.entry.example ? (
+                      <TappableSentence
+                        text={card.entry.example}
+                        onWord={setPopupWord}
+                        style={{ fontSize: 14.5, lineHeight: 22, marginTop: 6, color: '#3D3D5C' }}
+                      />
+                    ) : null}
                   </View>
                 ) : null}
               </View>
@@ -249,9 +259,18 @@ export default function PracticeScreen() {
                 <Text style={styles.dirLabel}>
                   {result.from === 'de' ? '📝 ترجمه 🇩🇪 → 🇮🇷' : '📝 ترجمه 🇮🇷 → 🇩🇪'}
                 </Text>
-                <Text style={styles.resultText} selectable>
-                  {result.text}
-                </Text>
+                {result.to === 'de' ? (
+                  <TappableSentence
+                    text={result.text}
+                    onWord={setPopupWord}
+                    bullet={false}
+                    style={styles.resultText}
+                  />
+                ) : (
+                  <Text style={styles.resultText} selectable>
+                    {result.text}
+                  </Text>
+                )}
                 <View style={{ marginTop: 12 }}>
                   <SpeakButtons text={result.from === 'de' ? submittedText : result.text} />
                 </View>
@@ -260,6 +279,8 @@ export default function PracticeScreen() {
           ) : null}
         </>
       )}
+
+      <WordPopup word={popupWord} onClose={() => setPopupWord(null)} />
     </ScreenScroll>
   );
 }
