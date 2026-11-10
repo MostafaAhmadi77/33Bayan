@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Brand } from '@/constants/theme';
+import { ScreenScroll } from '@/components/screen';
 import { SpeakButtons } from '@/components/speak-button';
 import { leitnerDue, leitnerReview, translate, type LeitnerCard } from '@/lib/api';
 import { logActivity } from '@/lib/storage';
@@ -98,7 +98,7 @@ export default function PracticeScreen() {
   const finished = !loading && !loadError && queue.length > 0 && index >= queue.length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScreenScroll>
       <Text style={styles.title}>تمرین</Text>
 
       {/* سوییچ حالت */}
@@ -260,13 +260,11 @@ export default function PracticeScreen() {
           ) : null}
         </>
       )}
-    </ScrollView>
+    </ScreenScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 14 },
   segment: {
     flexDirection: 'row',
@@ -281,7 +279,7 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: '#fff' },
   progress: { fontSize: 13, color: Brand.secondary, marginBottom: 10 },
   card: { backgroundColor: Brand.soft, borderRadius: Brand.radius, padding: 18 },
-  cardImage: { width: '100%', height: 160, borderRadius: 16, marginBottom: 14, backgroundColor: '#fff' },
+  cardImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, marginBottom: 14, backgroundColor: '#fff' },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   word: { fontSize: 28, fontWeight: '800', color: Brand.ink, writingDirection: 'ltr', textAlign: 'left', flexShrink: 1 },
   boxChip: {
