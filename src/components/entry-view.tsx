@@ -8,6 +8,7 @@ import { Brand } from '@/constants/theme';
 import type { Entry } from '@/lib/api';
 
 import { SpeakButtons } from './speak-button';
+import { TappableSentence } from './tappable-sentence';
 import { WordPopup } from './word-popup';
 
 const TYPE_FA: Record<string, string> = {
@@ -31,46 +32,26 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** جمله‌ی مثال با کلمه‌های قابل لمس: روی هر کلمه بزنی، پاپ‌آپ معنی‌اش باز می‌شود */
-function TappableSentence({
-  text,
-  onWord,
-}: {
-  text: string;
-  onWord: (w: string) => void;
-}) {
-  const tokens = text.split(/(\s+)/);
-  return (
-    <Text style={[styles.line, styles.ltr]}>
-      {'• '}
-      {tokens.map((tok, i) => {
-        if (!tok || /^\s+$/.test(tok)) return tok;
-        // نشانه‌گذاری‌های دو سرِ توکن (نقطه، ویرگول، گیومه…) جزو کلمه نیستند
-        const cleaned = tok.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, '');
-        if (cleaned.length >= 2 && /\p{L}/u.test(cleaned)) {
-          return (
-            <Text key={i} style={styles.tappable} onPress={() => onWord(cleaned)}>
-              {tok}
-            </Text>
-          );
-        }
-        return tok;
-      })}
-    </Text>
-  );
+/** متن داخل پرانتزِ چیپ‌های مترادف/متضاد (مثل برچسب سبک) جزو خود کلمه نیست */
+function cleanChip(s: string): string {
+  return s.replace(/\([^)]*\)/g, '').replace(/（[^）]*）/g, '').trim();
 }
 
 export function EntryView({
   entry,
   onAdd,
+  onLookupWord,
 }: {
   entry: Entry;
   onAdd?: (baseDays: 1 | 3 | 7) => Promise<void>;
+  onLookupWord?: (word: string) => void;
 }) {
   const [interval, setInterval] = useState<1 | 3 | 7>(1);
   const [added, setAdded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [popupWord, setPopupWord] = useState<string | null>(null);
+
+  const openWord = (w: string) => setPopupWord(w);
 
   const add = async () => {
     if (!onAdd || busy) return;
@@ -112,7 +93,8 @@ export function EntryView({
         <Section title="📖 معنی‌ها (آلمانی)">
           {entry.definitions.map((d, i) => (
             <Text key={i} style={[styles.line, styles.ltr]}>
-              {i + 1}. {d}
+              {i + 1}.{' '}
+              <TappableSentence text={d} onWord={openWord} bullet={false} style={styles.line} />
             </Text>
           ))}
         </Section>
@@ -121,35 +103,58 @@ export function EntryView({
       {entry.examples.length ? (
         <Section title="💬 مثال‌ها">
           {entry.examples.map((x, i) => (
-            <TappableSentence key={i} text={x} onWord={(w) => setPopupWord(w)} />
+            <TappableSentence key={i} text={x} onWord={openWord} style={styles.line} />
           ))}
-          <Text style={styles.hint}>💡 روی هر کلمه بزن تا معنیش رو ببینی</Text>
         </Section>
       ) : null}
 
       {entry.dwdsExamples.length ? (
         <Section title="📚 مثال (DWDS)">
           {entry.dwdsExamples.map((x, i) => (
-            <TappableSentence key={i} text={x} onWord={(w) => setPopupWord(w)} />
+            <TappableSentence key={i} text={x} onWord={openWord} style={styles.line} />
           ))}
         </Section>
       ) : null}
 
       {entry.collocations.length ? (
         <Section title="🔗 ترکیب‌های رایج">
-          <Text style={[styles.line, styles.ltr]}>{entry.collocations.join(' • ')}</Text>
+          {entry.collocations.map((c, i) => (
+            <TappableSentence key={i} text={c} onWord={openWord} style={styles.line} />
+          ))}
         </Section>
       ) : null}
 
       {entry.synonyms.length ? (
         <Section title="🟰 مترادف">
-          <Text style={[styles.line, styles.ltr]}>{entry.synonyms.join('، ')}</Text>
+          <View style={styles.chips}>
+            {entry.synonyms.map((s, i) => (
+              <Pressable
+                key={i}
+                onPress={() => {
+                  const cleaned = cleanChip(s);
+                  if (cleaned) setPopupWord(cleaned);
+                }}>
+                <Text style={[styles.chip, styles.chipLtr]}>{s}</Text>
+              </Pressable>
+            ))}
+          </View>
         </Section>
       ) : null}
 
       {entry.antonyms.length ? (
         <Section title="➖ متضاد">
-          <Text style={[styles.line, styles.ltr]}>{entry.antonyms.join('، ')}</Text>
+          <View style={styles.chips}>
+            {entry.antonyms.map((s, i) => (
+              <Pressable
+                key={i}
+                onPress={() => {
+                  const cleaned = cleanChip(s);
+                  if (cleaned) setPopupWord(cleaned);
+                }}>
+                <Text style={[styles.chip, styles.chipLtr]}>{s}</Text>
+              </Pressable>
+            ))}
+          </View>
         </Section>
       ) : null}
 
@@ -177,7 +182,19 @@ export function EntryView({
         </View>
       ) : null}
 
-      <WordPopup word={popupWord} onClose={() => setPopupWord(null)} />
+      <WordPopup
+        word={popupWord}
+        onClose={() => setPopupWord(null)}
+        onOpenFull={
+          onLookupWord
+            ? () => {
+                const w = popupWord;
+                setPopupWord(null);
+                if (w) onLookupWord(w);
+              }
+            : undefined
+        }
+      />
     </View>
   );
 }
@@ -210,8 +227,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Brand.ink, marginBottom: 6 },
   line: { fontSize: 15, lineHeight: 24, color: '#3D3D5C' },
   ltr: { writingDirection: 'ltr', textAlign: 'left' },
-  tappable: { color: Brand.primaryDeep },
-  hint: { fontSize: 12.5, color: Brand.secondary, marginTop: 8 },
   addBox: {
     marginTop: 22,
     backgroundColor: Brand.soft,
