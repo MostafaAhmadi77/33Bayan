@@ -1,6 +1,6 @@
 name: Publish preview update
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 jobs:
   publish_update:
     name: Publish preview update
