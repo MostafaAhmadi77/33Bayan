@@ -8,6 +8,7 @@
     "scheme": "33bayan",
     "userInterfaceStyle": "automatic",
     "android": {
+      "package": "com.mostafa.bayan33",
       "adaptiveIcon": {
         "backgroundColor": "#E9E5FF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
