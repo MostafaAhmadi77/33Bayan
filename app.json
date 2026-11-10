@@ -2,7 +2,7 @@
   "expo": {
     "name": "33Bayan",
     "slug": "33bayan",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "33bayan",
@@ -10,7 +10,7 @@
     "android": {
       "package": "com.mostafa.bayan33",
       "adaptiveIcon": {
-        "backgroundColor": "#E9E5FF",
+        "backgroundColor": "#7B61FF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
