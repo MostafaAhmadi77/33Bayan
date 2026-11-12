@@ -79,3 +79,24 @@ export async function getLastWord(): Promise<string | null> {
 }
 
 export const setLastWord = (w: string) => AsyncStorage.setItem(LAST_KEY, w);
+
+// تم نمایش (روشن/تیره/سیستم) — نوع اینجا تعریف می‌شود تا theme-context بدون
+// چرخه‌ی import از آن استفاده کند (storage هرگز theme-context را import نمی‌کند)
+export type ThemeMode = 'light' | 'dark' | 'system';
+export const THEME_KEY = 'bayan:theme';
+
+export async function getThemeMode(): Promise<ThemeMode> {
+  try {
+    const v = await AsyncStorage.getItem(THEME_KEY);
+    return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export const setThemeMode = (m: ThemeMode) => AsyncStorage.setItem(THEME_KEY, m);
+
+/** پاک کردن همه‌ی جست‌وجوهای اخیر */
+export async function clearRecent(): Promise<void> {
+  await AsyncStorage.removeItem(RECENT_KEY);
+}
