@@ -5,13 +5,15 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
-import { Brand } from '@/constants/theme';
 import { leitnerList, type LeitnerCard } from '@/lib/api';
+import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { dayKey, getActivity, streakOf, type ActivityMap } from '@/lib/storage';
 
 const faNum = (n: number) => n.toLocaleString('fa-IR');
 
 export default function ProgressScreen() {
+  const { colors, isDark } = useAppTheme();
+  const styles = makeStyles(colors, isDark);
   const [activity, setActivity] = useState<ActivityMap>({});
   const [cards, setCards] = useState<LeitnerCard[]>([]);
 
@@ -97,7 +99,7 @@ export default function ProgressScreen() {
                 style={[
                   styles.barFill,
                   { width: `${(count / maxBox) * 100}%` },
-                  i === 4 && { backgroundColor: Brand.success },
+                  i === 4 && { backgroundColor: colors.success },
                 ]}
               />
             </View>
@@ -117,7 +119,7 @@ export default function ProgressScreen() {
                 style={[
                   styles.weekBar,
                   { height: 6 + (w.reviews / maxWeek) * 54 },
-                  i === 6 && { backgroundColor: Brand.primary },
+                  i === 6 && { backgroundColor: colors.primary },
                 ]}
               />
               <Text style={styles.weekDay}>{faNum(w.date.getDate())}</Text>
@@ -132,7 +134,7 @@ export default function ProgressScreen() {
         {achievements.map((a) => (
           <View key={a.title} style={[styles.achCard, !a.unlocked && styles.achLocked]}>
             <Text style={[styles.achEmoji, !a.unlocked && { opacity: 0.3 }]}>{a.emoji}</Text>
-            <Text style={[styles.achTitle, !a.unlocked && { color: Brand.secondary }]}>{a.title}</Text>
+            <Text style={[styles.achTitle, !a.unlocked && { color: colors.secondary }]}>{a.title}</Text>
             <Text style={styles.achState}>{a.unlocked ? 'باز شده ✅' : 'قفل 🔒'}</Text>
           </View>
         ))}
@@ -141,69 +143,71 @@ export default function ProgressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
-  xpCard: {
-    backgroundColor: Brand.primary,
-    borderRadius: Brand.radius,
-    padding: 20,
-    marginBottom: 14,
-  },
-  xpText: { fontSize: 30, fontWeight: '800', color: '#fff' },
-  xpSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
-  card: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: Brand.radius,
-    padding: 16,
-    marginBottom: 14,
-  },
-  streakText: { fontSize: 20, fontWeight: '800', color: Brand.ink },
-  cardSub: { fontSize: 13, color: Brand.secondary, marginTop: 4 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: Brand.ink, marginBottom: 12 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  chip: {
-    backgroundColor: Brand.chip,
-    color: Brand.primaryDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    fontSize: 13,
-    fontWeight: '600',
-    overflow: 'hidden',
-  },
-  chipDue: { backgroundColor: '#FFF3D6', color: '#9A6B00' },
-  boxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  boxLabel: { width: 58, fontSize: 13, color: Brand.ink },
-  barTrack: {
-    flex: 1,
-    height: 12,
-    backgroundColor: Brand.soft,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  barFill: { height: '100%', backgroundColor: Brand.primary, borderRadius: 999 },
-  boxCount: { width: 28, fontSize: 13, fontWeight: '700', color: Brand.ink, textAlign: 'center' },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  weekCol: { alignItems: 'center', gap: 4, flex: 1 },
-  weekValue: { fontSize: 11, color: Brand.secondary, height: 14 },
-  weekBar: { width: 24, backgroundColor: Brand.chip, borderRadius: 8 },
-  weekDay: { fontSize: 11, color: Brand.secondary },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: Brand.ink, marginBottom: 10, marginTop: 4 },
-  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  achCard: {
-    width: '31%',
-    backgroundColor: Brand.soft,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Brand.chip,
-  },
-  achLocked: { backgroundColor: '#FAFAFC', borderColor: Brand.border },
-  achEmoji: { fontSize: 26 },
-  achTitle: { fontSize: 12, fontWeight: '700', color: Brand.ink, marginTop: 6, textAlign: 'center' },
-  achState: { fontSize: 10, color: Brand.secondary, marginTop: 2 },
-});
+function makeStyles(colors: AppTheme['colors'], isDark: boolean) {
+  return StyleSheet.create({
+    title: { fontSize: 26, fontWeight: '800', color: colors.ink, marginBottom: 16 },
+    xpCard: {
+      backgroundColor: colors.primary,
+      borderRadius: colors.radius,
+      padding: 20,
+      marginBottom: 14,
+    },
+    xpText: { fontSize: 30, fontWeight: '800', color: '#fff' },
+    xpSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
+    card: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: colors.radius,
+      padding: 16,
+      marginBottom: 14,
+    },
+    streakText: { fontSize: 20, fontWeight: '800', color: colors.ink },
+    cardSub: { fontSize: 13, color: colors.secondary, marginTop: 4 },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginBottom: 12 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+    chip: {
+      backgroundColor: colors.chip,
+      color: colors.primaryDeep,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      fontSize: 13,
+      fontWeight: '600',
+      overflow: 'hidden',
+    },
+    chipDue: { backgroundColor: isDark ? '#3A2E12' : '#FFF3D6', color: isDark ? '#FFC95E' : '#9A6B00' },
+    boxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    boxLabel: { width: 58, fontSize: 13, color: colors.ink },
+    barTrack: {
+      flex: 1,
+      height: 12,
+      backgroundColor: colors.soft,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    barFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 999 },
+    boxCount: { width: 28, fontSize: 13, fontWeight: '700', color: colors.ink, textAlign: 'center' },
+    weekRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+    weekCol: { alignItems: 'center', gap: 4, flex: 1 },
+    weekValue: { fontSize: 11, color: colors.secondary, height: 14 },
+    weekBar: { width: 24, backgroundColor: colors.chip, borderRadius: 8 },
+    weekDay: { fontSize: 11, color: colors.secondary },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink, marginBottom: 10, marginTop: 4 },
+    achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    achCard: {
+      width: '31%',
+      backgroundColor: colors.soft,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.chip,
+    },
+    achLocked: { backgroundColor: colors.soft, borderColor: colors.border },
+    achEmoji: { fontSize: 26 },
+    achTitle: { fontSize: 12, fontWeight: '700', color: colors.ink, marginTop: 6, textAlign: 'center' },
+    achState: { fontSize: 10, color: colors.secondary, marginTop: 2 },
+  });
+}

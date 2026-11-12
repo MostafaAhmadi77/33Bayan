@@ -1,17 +1,25 @@
-// صفحه‌ی پروفایل: سربرگ 33Bayan، هدف روزانه و فهرست واژگان لایتنر (با حذف)
+// صفحه‌ی پروفایل: سربرگ 33Bayan، هدف روزانه، تم نمایش و فهرست واژگان لایتنر (با حذف)
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
-import { Brand } from '@/constants/theme';
+import { type ThemeColors } from '@/constants/theme';
 import { leitnerList, leitnerRemove, type LeitnerCard } from '@/lib/api';
-import { getGoal, setGoal } from '@/lib/storage';
+import { getGoal, setGoal, type ThemeMode } from '@/lib/storage';
+import { useAppTheme } from '@/lib/theme-context';
 
 const faNum = (n: number) => n.toLocaleString('fa-IR');
 const GOALS = [5, 10, 20] as const;
+const THEME_MODES = [
+  { value: 'light', label: '☀️ روشن' },
+  { value: 'dark', label: '🌙 تیره' },
+  { value: 'system', label: '⚙️ سیستم' },
+] as const;
 
 export default function ProfileScreen() {
+  const { colors, mode, setMode } = useAppTheme();
+  const styles = makeStyles(colors);
   const [cards, setCards] = useState<LeitnerCard[]>([]);
   const [goal, setGoalState] = useState<number>(10);
 
@@ -36,6 +44,10 @@ export default function ProfileScreen() {
   const pickGoal = async (g: number) => {
     setGoalState(g);
     await setGoal(g).catch(() => {});
+  };
+
+  const pickMode = (m: ThemeMode) => {
+    void setMode(m).catch(() => {});
   };
 
   const remove = async (id: string) => {
@@ -79,6 +91,27 @@ export default function ProfileScreen() {
         <Text style={styles.cardSub}>هر روز {faNum(goal)} مرور، هدف امروز توست.</Text>
       </View>
 
+      {/* تم نمایش */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🌙 تم نمایش</Text>
+        <View style={styles.goalRow}>
+          {THEME_MODES.map((t) => (
+            <Pressable key={t.value} onPress={() => pickMode(t.value)}>
+              <Text style={[styles.goalChip, mode === t.value && styles.goalChipActive]}>
+                {t.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.cardSub}>
+          {mode === 'system'
+            ? 'تم با تنظیمات سیستم گوشی هماهنگ می‌شود.'
+            : mode === 'dark'
+              ? 'تم تیره فعال است.'
+              : 'تم روشن فعال است.'}
+        </Text>
+      </View>
+
       {/* واژگان من */}
       <Text style={styles.sectionTitle}>📦 واژگان من ({faNum(cards.length)})</Text>
       {cards.length === 0 ? (
@@ -110,79 +143,80 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
-  headerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: Brand.soft,
-    borderRadius: Brand.radius,
-    padding: 16,
-    marginBottom: 14,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Brand.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  headerInfo: { flex: 1 },
-  appName: { fontSize: 20, fontWeight: '800', color: Brand.ink, writingDirection: 'ltr', textAlign: 'left' },
-  appSub: { fontSize: 13, color: Brand.secondary, marginTop: 3 },
-  card: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: Brand.radius,
-    padding: 16,
-    marginBottom: 14,
-  },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: Brand.ink, marginBottom: 10 },
-  cardSub: { fontSize: 13, color: Brand.secondary, marginTop: 10 },
-  goalRow: { flexDirection: 'row', gap: 8 },
-  goalChip: {
-    backgroundColor: Brand.chip,
-    color: Brand.primaryDeep,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    fontSize: 14,
-    fontWeight: '700',
-    overflow: 'hidden',
-  },
-  goalChipActive: { backgroundColor: Brand.primary, color: '#fff' },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: Brand.ink, marginBottom: 10, marginTop: 4 },
-  emptyText: { fontSize: 14, color: Brand.secondary, lineHeight: 22 },
-  wordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  wordInfo: { flex: 1 },
-  word: { fontSize: 17, fontWeight: '700', color: Brand.ink, writingDirection: 'ltr', textAlign: 'left' },
-  wordFa: { fontSize: 14, color: Brand.primaryDeep, marginTop: 2 },
-  wordChips: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  miniChip: {
-    backgroundColor: Brand.chip,
-    color: Brand.primaryDeep,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: '600',
-    overflow: 'hidden',
-  },
-  dueChip: { backgroundColor: '#FFF3D6', color: '#9A6B00' },
-  deleteBtn: { padding: 6 },
-  deleteText: { fontSize: 18 },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    title: { fontSize: 26, fontWeight: '800', color: c.ink, marginBottom: 16 },
+    headerCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      backgroundColor: c.soft,
+      borderRadius: c.radius,
+      padding: 16,
+      marginBottom: 14,
+    },
+    avatar: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: c.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { color: '#fff', fontSize: 22, fontWeight: '800' },
+    headerInfo: { flex: 1 },
+    appName: { fontSize: 20, fontWeight: '800', color: c.ink, writingDirection: 'ltr', textAlign: 'left' },
+    appSub: { fontSize: 13, color: c.secondary, marginTop: 3 },
+    card: {
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: c.radius,
+      padding: 16,
+      marginBottom: 14,
+    },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: c.ink, marginBottom: 10 },
+    cardSub: { fontSize: 13, color: c.secondary, marginTop: 10 },
+    goalRow: { flexDirection: 'row', gap: 8 },
+    goalChip: {
+      backgroundColor: c.chip,
+      color: c.primaryDeep,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 999,
+      fontSize: 14,
+      fontWeight: '700',
+      overflow: 'hidden',
+    },
+    goalChipActive: { backgroundColor: c.primary, color: '#fff' },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: c.ink, marginBottom: 10, marginTop: 4 },
+    emptyText: { fontSize: 14, color: c.secondary, lineHeight: 22 },
+    wordRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      padding: 12,
+      marginBottom: 10,
+      backgroundColor: c.card,
+    },
+    wordInfo: { flex: 1 },
+    word: { fontSize: 17, fontWeight: '700', color: c.ink, writingDirection: 'ltr', textAlign: 'left' },
+    wordFa: { fontSize: 14, color: c.primaryDeep, marginTop: 2 },
+    wordChips: { flexDirection: 'row', gap: 6, marginTop: 6 },
+    miniChip: {
+      backgroundColor: c.chip,
+      color: c.primaryDeep,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: '600',
+      overflow: 'hidden',
+    },
+    dueChip: { backgroundColor: '#FFF3D6', color: '#9A6B00' },
+    deleteBtn: { padding: 6 },
+    deleteText: { fontSize: 18 },
+  });

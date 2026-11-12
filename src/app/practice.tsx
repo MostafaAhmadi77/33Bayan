@@ -1,5 +1,6 @@
 // صفحه‌ی تمرین: مرور جعبه‌ی لایتنر (فلش‌کارت) + ترجمه‌ی متن
 import { Image } from 'expo-image';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,18 +11,21 @@ import {
   View,
 } from 'react-native';
 
-import { Brand } from '@/constants/theme';
 import { ScreenScroll } from '@/components/screen';
 import { SpeakButtons } from '@/components/speak-button';
 import { TappableSentence } from '@/components/tappable-sentence';
 import { WordPopup } from '@/components/word-popup';
 import { leitnerDue, leitnerReview, translate, type LeitnerCard } from '@/lib/api';
+import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { logActivity } from '@/lib/storage';
 
 type Mode = 'review' | 'translate';
 type TranslateResult = { failed: boolean; text: string; from: string; to: string };
 
 export default function PracticeScreen() {
+  const { colors, isDark } = useAppTheme();
+  const styles = makeStyles(colors, isDark);
+
   const [mode, setMode] = useState<Mode>('review');
   const [popupWord, setPopupWord] = useState<string | null>(null);
 
@@ -81,6 +85,29 @@ export default function PracticeScreen() {
   const [result, setResult] = useState<TranslateResult | null>(null);
   const [submittedText, setSubmittedText] = useState('');
 
+  // پاک کردن کامل باکس ترجمه (متن، نتیجه، متن ارسالی، وضعیت ترجمه، پاپ‌آپ)
+  const clearTranslation = useCallback(() => {
+    setInput('');
+    setResult(null);
+    setSubmittedText('');
+    setTranslating(false);
+    setPopupWord(null);
+  }, []);
+
+  // باکس ترجمه هنگام ترک صفحه (تعویض تب) خالی می‌شود؛ صف مرور دست نمی‌خورد
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        clearTranslation();
+      };
+    }, [clearTranslation]),
+  );
+
+  // باکس ترجمه هنگام برگشت از حالت ترجمه به حالت مرور هم خالی می‌شود
+  useEffect(() => {
+    if (mode === 'review') clearTranslation();
+  }, [mode, clearTranslation]);
+
   const doTranslate = async () => {
     const text = input.trim();
     if (!text || translating) return;
@@ -126,7 +153,7 @@ export default function PracticeScreen() {
         <>
           {loading ? (
             <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={Brand.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.hint}>در حال بارگذاری کارت‌ها…</Text>
             </View>
           ) : loadError ? (
@@ -195,7 +222,7 @@ export default function PracticeScreen() {
                       <TappableSentence
                         text={card.entry.example}
                         onWord={setPopupWord}
-                        style={{ fontSize: 14.5, lineHeight: 22, marginTop: 6, color: '#3D3D5C' }}
+                        style={{ fontSize: 14.5, lineHeight: 22, marginTop: 6, color: colors.secondary }}
                       />
                     ) : null}
                   </View>
@@ -233,7 +260,7 @@ export default function PracticeScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="متن آلمانی یا فارسی رو اینجا بنویس…"
-            placeholderTextColor={Brand.secondary}
+            placeholderTextColor={colors.secondary}
             textAlignVertical="top"
             maxLength={2000}
           />
@@ -247,7 +274,7 @@ export default function PracticeScreen() {
 
           {translating ? (
             <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={Brand.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : result ? (
             result.failed ? (
@@ -285,73 +312,75 @@ export default function PracticeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 14 },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: Brand.soft,
-    borderRadius: 999,
-    padding: 4,
-    marginBottom: 20,
-  },
-  segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
-  segmentBtnActive: { backgroundColor: Brand.primary },
-  segmentText: { fontSize: 14, fontWeight: '700', color: Brand.secondary },
-  segmentTextActive: { color: '#fff' },
-  progress: { fontSize: 13, color: Brand.secondary, marginBottom: 10 },
-  card: { backgroundColor: Brand.soft, borderRadius: Brand.radius, padding: 18 },
-  cardImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, marginBottom: 14, backgroundColor: '#fff' },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  word: { fontSize: 28, fontWeight: '800', color: Brand.ink, writingDirection: 'ltr', textAlign: 'left', flexShrink: 1 },
-  boxChip: {
-    backgroundColor: Brand.chip,
-    color: Brand.primaryDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 13,
-    overflow: 'hidden',
-  },
-  meaning: { marginTop: 16, borderTopWidth: 1, borderTopColor: Brand.border, paddingTop: 14 },
-  persian: { fontSize: 22, fontWeight: '700', color: Brand.primaryDeep },
-  meta: { fontSize: 14, color: Brand.secondary, marginTop: 6 },
-  ltr: { writingDirection: 'ltr', textAlign: 'left' },
-  primaryBtn: {
-    backgroundColor: Brand.primary,
-    borderRadius: 14,
-    paddingVertical: 13,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  answerRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  knowBtn: { flex: 1, backgroundColor: Brand.success, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  knowBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  dunnoBtn: { flex: 1, backgroundColor: '#FFEDED', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  dunnoBtnText: { color: Brand.danger, fontSize: 15, fontWeight: '700' },
-  disabled: { opacity: 0.55 },
-  centerBox: { alignItems: 'center', paddingVertical: 34, gap: 8 },
-  bigEmoji: { fontSize: 44 },
-  centerTitle: { fontSize: 19, fontWeight: '800', color: Brand.ink, textAlign: 'center' },
-  centerText: { fontSize: 15, color: Brand.secondary, textAlign: 'center', lineHeight: 24 },
-  hint: { fontSize: 14, color: Brand.secondary },
-  input: {
-    minHeight: 110,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: 16,
-    padding: 14,
-    fontSize: 16,
-    color: Brand.ink,
-    backgroundColor: '#fff',
-  },
-  charNote: { fontSize: 12, color: Brand.secondary, marginTop: 8 },
-  resultCard: {
-    marginTop: 20,
-    backgroundColor: Brand.soft,
-    borderRadius: Brand.radius,
-    padding: 18,
-  },
-  dirLabel: { fontSize: 13, fontWeight: '700', color: Brand.primaryDeep, marginBottom: 8 },
-  resultText: { fontSize: 17, lineHeight: 27, color: Brand.ink },
-});
+function makeStyles(colors: AppTheme['colors'], isDark: boolean) {
+  return StyleSheet.create({
+    title: { fontSize: 26, fontWeight: '800', color: colors.ink, marginBottom: 14 },
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.soft,
+      borderRadius: 999,
+      padding: 4,
+      marginBottom: 20,
+    },
+    segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
+    segmentBtnActive: { backgroundColor: colors.primary },
+    segmentText: { fontSize: 14, fontWeight: '700', color: colors.secondary },
+    segmentTextActive: { color: '#fff' },
+    progress: { fontSize: 13, color: colors.secondary, marginBottom: 10 },
+    card: { backgroundColor: colors.soft, borderRadius: colors.radius, padding: 18 },
+    cardImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, marginBottom: 14, backgroundColor: colors.card },
+    cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    word: { fontSize: 28, fontWeight: '800', color: colors.ink, writingDirection: 'ltr', textAlign: 'left', flexShrink: 1 },
+    boxChip: {
+      backgroundColor: colors.chip,
+      color: colors.primaryDeep,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 999,
+      fontSize: 13,
+      overflow: 'hidden',
+    },
+    meaning: { marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14 },
+    persian: { fontSize: 22, fontWeight: '700', color: colors.primaryDeep },
+    meta: { fontSize: 14, color: colors.secondary, marginTop: 6 },
+    ltr: { writingDirection: 'ltr', textAlign: 'left' },
+    primaryBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 13,
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    answerRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
+    knowBtn: { flex: 1, backgroundColor: colors.success, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+    knowBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    dunnoBtn: { flex: 1, backgroundColor: isDark ? colors.soft : '#FFEDED', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+    dunnoBtnText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
+    disabled: { opacity: 0.55 },
+    centerBox: { alignItems: 'center', paddingVertical: 34, gap: 8 },
+    bigEmoji: { fontSize: 44 },
+    centerTitle: { fontSize: 19, fontWeight: '800', color: colors.ink, textAlign: 'center' },
+    centerText: { fontSize: 15, color: colors.secondary, textAlign: 'center', lineHeight: 24 },
+    hint: { fontSize: 14, color: colors.secondary },
+    input: {
+      minHeight: 110,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      padding: 14,
+      fontSize: 16,
+      color: colors.ink,
+      backgroundColor: colors.card,
+    },
+    charNote: { fontSize: 12, color: colors.secondary, marginTop: 8 },
+    resultCard: {
+      marginTop: 20,
+      backgroundColor: colors.soft,
+      borderRadius: colors.radius,
+      padding: 18,
+    },
+    dirLabel: { fontSize: 13, fontWeight: '700', color: colors.primaryDeep, marginBottom: 8 },
+    resultText: { fontSize: 17, lineHeight: 27, color: colors.ink },
+  });
+}

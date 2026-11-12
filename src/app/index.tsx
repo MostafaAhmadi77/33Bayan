@@ -4,8 +4,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
-import { Brand } from '@/constants/theme';
 import { leitnerDue, leitnerList } from '@/lib/api';
+import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { dayKey, getActivity, getGoal, getLastWord, streakOf, type ActivityMap } from '@/lib/storage';
 
 type HomeData = {
@@ -27,6 +27,8 @@ const TILES: { emoji: string; label: string; href: '/explore' | '/practice' | '/
 ];
 
 export default function HomeScreen() {
+  const { colors, isDark } = useAppTheme();
+  const styles = makeStyles(colors, isDark);
   const [data, setData] = useState<HomeData>(EMPTY);
 
   useFocusEffect(
@@ -127,67 +129,69 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  title: { fontSize: 26, fontWeight: '800', color: Brand.ink },
-  subtitle: { fontSize: 15, color: Brand.secondary, marginTop: 4 },
-  streakChip: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  streakText: { fontSize: 15, fontWeight: '700', color: '#E65100' },
-  continueCard: {
-    backgroundColor: Brand.primary,
-    borderRadius: Brand.radius,
-    padding: 20,
-    marginTop: 20,
-  },
-  continueTitle: { fontSize: 19, fontWeight: '800', color: '#fff' },
-  continueSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
-  lastWord: { fontWeight: '700', color: '#fff', writingDirection: 'ltr' },
-  continueBtn: {
-    backgroundColor: '#fff',
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    alignSelf: 'flex-start',
-    marginTop: 14,
-  },
-  continueBtnText: { color: Brand.primaryDeep, fontSize: 15, fontWeight: '700' },
-  card: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: Brand.radius,
-    padding: 18,
-    marginTop: 16,
-  },
-  goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: Brand.ink },
-  goalText: { fontSize: 13, color: Brand.secondary },
-  barTrack: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: Brand.soft,
-    marginTop: 12,
-    overflow: 'hidden',
-  },
-  barFill: { height: '100%', borderRadius: 999, backgroundColor: Brand.primary },
-  goalDone: { fontSize: 13, fontWeight: '700', color: Brand.success, marginTop: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: Brand.ink, marginTop: 24, marginBottom: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: {
-    width: '48%',
-    flexGrow: 1,
-    backgroundColor: Brand.soft,
-    borderRadius: Brand.radius,
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  tileEmoji: { fontSize: 30 },
-  tileLabel: { fontSize: 15, fontWeight: '700', color: Brand.ink },
-  totalLine: { fontSize: 14, color: Brand.secondary, textAlign: 'center', marginTop: 24 },
-});
+function makeStyles(colors: AppTheme['colors'], isDark: boolean) {
+  return StyleSheet.create({
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    title: { fontSize: 26, fontWeight: '800', color: colors.ink },
+    subtitle: { fontSize: 15, color: colors.secondary, marginTop: 4 },
+    streakChip: {
+      backgroundColor: isDark ? '#3A2E12' : '#FFF3E0',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    streakText: { fontSize: 15, fontWeight: '700', color: isDark ? '#FFC95E' : '#E65100' },
+    continueCard: {
+      backgroundColor: colors.primary,
+      borderRadius: colors.radius,
+      padding: 20,
+      marginTop: 20,
+    },
+    continueTitle: { fontSize: 19, fontWeight: '800', color: '#fff' },
+    continueSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
+    lastWord: { fontWeight: '700', color: '#fff', writingDirection: 'ltr' },
+    continueBtn: {
+      backgroundColor: '#fff',
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+      alignSelf: 'flex-start',
+      marginTop: 14,
+    },
+    continueBtnText: { color: colors.primaryDeep, fontSize: 15, fontWeight: '700' },
+    card: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: colors.radius,
+      padding: 18,
+      marginTop: 16,
+    },
+    goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: colors.ink },
+    goalText: { fontSize: 13, color: colors.secondary },
+    barTrack: {
+      height: 10,
+      borderRadius: 999,
+      backgroundColor: colors.soft,
+      marginTop: 12,
+      overflow: 'hidden',
+    },
+    barFill: { height: '100%', borderRadius: 999, backgroundColor: colors.primary },
+    goalDone: { fontSize: 13, fontWeight: '700', color: colors.success, marginTop: 10 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: colors.ink, marginTop: 24, marginBottom: 12 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    tile: {
+      width: '48%',
+      flexGrow: 1,
+      backgroundColor: colors.soft,
+      borderRadius: colors.radius,
+      paddingVertical: 20,
+      alignItems: 'center',
+      gap: 8,
+    },
+    tileEmoji: { fontSize: 30 },
+    tileLabel: { fontSize: 15, fontWeight: '700', color: colors.ink },
+    totalLine: { fontSize: 14, color: colors.secondary, textAlign: 'center', marginTop: 24 },
+  });
+}

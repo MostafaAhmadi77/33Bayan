@@ -1,7 +1,8 @@
 // صفحه‌ی دیکشنری: جست‌وجوی آلمانی → فارسی و فارسی → آلمانی
 // نتیجه‌ی آلمانی کارت کامل مدخل را نشان می‌دهد؛ نتیجه‌ی فارسی فهرست معادل‌هاست
 // و با لمس هر معادل، کارت کامل همان کلمه باز می‌شود.
-import { useCallback, useEffect, useState } from 'react';
+// جست‌وجو خودکار است: ۲ ثانیه بعد از آخرین کلید (debounce) اجرا می‌شود.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,22 +14,26 @@ import {
 
 import { EntryView } from '@/components/entry-view';
 import { ScreenScroll } from '@/components/screen';
-import { Brand } from '@/constants/theme';
 import {
   lookupGerman,
   lookupPersian,
   leitnerAdd,
   type Entry,
 } from '@/lib/api';
-import { getRecent, logActivity, pushRecent, setLastWord } from '@/lib/storage';
+import { clearRecent, getRecent, logActivity, pushRecent, setLastWord } from '@/lib/storage';
+import { useAppTheme } from '@/lib/theme-context';
 
 type Dir = 'de' | 'fa';
 type Equivalent = { de: string; entry: Entry | null };
 type Status = 'idle' | 'loading' | 'error' | 'notFound' | 'result';
 
+type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
+
 const hasPersian = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 export default function ExploreScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [dir, setDir] = useState<Dir>('de');
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -37,6 +42,11 @@ export default function ExploreScreen() {
   const [equivalents, setEquivalents] = useState<Equivalent[]>([]);
   const [selected, setSelected] = useState<Entry | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
+
+  // شناسه‌ی یکنواختِ درخواست‌ها: فقط نتیجه‌ی آخرین جست‌وجو اعمال می‌شود.
+  // هر فراخوانی search در ابتدا آن را زیاد می‌کند و بعد از هر await بررسی می‌کند
+  // که آیا جست‌وجوی تازه‌تری شروع شده یا نه؛ اگر شده، ادامه را رها می‌کند.
+  const searchSeq = useRef(0);
 
   const reloadRecent = useCallback(async () => {
     setRecent(await getRecent());
@@ -55,6 +65,7 @@ export default function ExploreScreen() {
     async (raw: string, direction: Dir) => {
       const q = raw.trim();
       if (!q) return;
+      const seq = ++searchSeq.current;
       setQuery(q);
       setDir(direction);
       setSearched(q);
@@ -65,6 +76,7 @@ export default function ExploreScreen() {
       try {
         if (direction === 'de') {
           const r = await lookupGerman(q);
+          if (seq !== searchSeq.current) return;
           if (r.found && r.entry) {
             setEntry(r.entry);
             setStatus('result');
@@ -75,6 +87,7 @@ export default function ExploreScreen() {
           }
         } else {
           const r = await lookupPersian(q);
+          if (seq !== searchSeq.current) return;
           if (r.found && r.equivalents.length) {
             setEquivalents(r.equivalents);
             setStatus('result');
@@ -84,19 +97,47 @@ export default function ExploreScreen() {
           }
         }
       } catch {
+        if (seq !== searchSeq.current) return;
         setStatus('error');
       } finally {
-        reloadRecent();
+        if (seq === searchSeq.current) reloadRecent();
       }
     },
     [reloadRecent],
   );
+
+  // جست‌وجوی خودکار: ۲ ثانیه بعد از اینکه کاربر چیزی تایپ نکرد.
+  // هر کلید تایمر را از اول می‌اندازد (cleanup)؛ تغییر جهت هم با همان
+  // پرس‌وجوی فعلی بعد از ۲ ثانیه جست‌وجو می‌کند.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      // خالی شدن باکس: نتیجه‌ی قبلی نماند + جست‌وجوی در حال اجرا باطل شود
+      searchSeq.current += 1;
+      setSearched('');
+      setStatus('idle');
+      setEntry(null);
+      setEquivalents([]);
+      setSelected(null);
+      return;
+    }
+    if (trimmed === searched) return;
+    const t = setTimeout(() => {
+      void search(query, dir);
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [query, dir, searched, search]);
 
   const submit = () => search(query, dir);
 
   const tapRecent = (word: string) => {
     search(word, hasPersian(word) ? 'fa' : 'de');
   };
+
+  const handleClearRecent = useCallback(async () => {
+    await clearRecent();
+    setRecent([]);
+  }, []);
 
   return (
     <ScreenScroll keyboardShouldPersistTaps="handled">
@@ -129,7 +170,7 @@ export default function ExploreScreen() {
           placeholder={
             dir === 'de' ? 'یه کلمه‌ی آلمانی بنویس…' : 'یه کلمه‌ی فارسی بنویس…'
           }
-          placeholderTextColor={Brand.secondary}
+          placeholderTextColor={colors.secondary}
           style={[styles.input, dir === 'de' && styles.inputLtr]}
           returnKeyType="search"
           autoCapitalize="none"
@@ -143,7 +184,12 @@ export default function ExploreScreen() {
       {/* جست‌وجوهای اخیر */}
       {recent.length > 0 && status !== 'loading' ? (
         <View style={styles.recentBox}>
-          <Text style={styles.recentTitle}>جست‌وجوهای اخیر</Text>
+          <View style={styles.recentHeader}>
+            <Text style={styles.recentTitle}>جست‌وجوهای اخیر</Text>
+            <Pressable onPress={handleClearRecent} hitSlop={8}>
+              <Text style={styles.clearRecentText}>🗑 پاک کردن</Text>
+            </Pressable>
+          </View>
           <View style={styles.chips}>
             {recent.map((w) => (
               <Pressable key={w} onPress={() => tapRecent(w)}>
@@ -157,7 +203,7 @@ export default function ExploreScreen() {
       {/* حالت‌ها */}
       {status === 'loading' ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color={Brand.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.hint}>دارم می‌گردم…</Text>
         </View>
       ) : null}
@@ -223,92 +269,101 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: 24, fontWeight: '800', color: Brand.ink, marginBottom: 16 },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: Brand.soft,
-    borderRadius: 999,
-    padding: 4,
-    gap: 4,
-  },
-  segmentBtn: {
-    flex: 1,
-    borderRadius: 999,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  segmentBtnActive: { backgroundColor: Brand.primary },
-  segmentText: { fontSize: 14, fontWeight: '700', color: Brand.secondary },
-  segmentTextActive: { color: '#fff' },
-  searchRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    backgroundColor: Brand.soft,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Brand.ink,
-  },
-  inputLtr: { writingDirection: 'ltr', textAlign: 'left' },
-  searchBtn: {
-    backgroundColor: Brand.primary,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  recentBox: { marginTop: 18 },
-  recentTitle: { fontSize: 13, fontWeight: '700', color: Brand.secondary, marginBottom: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    backgroundColor: Brand.chip,
-    color: Brand.primaryDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    fontSize: 13,
-    overflow: 'hidden',
-  },
-  centerBox: { alignItems: 'center', marginTop: 48, gap: 12 },
-  hint: { fontSize: 14, color: Brand.secondary },
-  message: { fontSize: 16, color: Brand.ink, textAlign: 'center', lineHeight: 26 },
-  retryBtn: {
-    backgroundColor: Brand.primary,
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-  },
-  retryText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  card: {
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: Brand.radius,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  backText: {
-    marginTop: 20,
-    fontSize: 14,
-    fontWeight: '700',
-    color: Brand.primaryDeep,
-  },
-  eqTitle: { fontSize: 15, fontWeight: '700', color: Brand.ink, marginTop: 20, marginBottom: 10 },
-  eqRow: {
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  eqRowDisabled: { opacity: 0.45 },
-  eqDe: { fontSize: 19, fontWeight: '700', color: Brand.ink, writingDirection: 'ltr', textAlign: 'left' },
-  eqFa: { fontSize: 13, color: Brand.secondary, marginTop: 3 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    title: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 16 },
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.soft,
+      borderRadius: 999,
+      padding: 4,
+      gap: 4,
+    },
+    segmentBtn: {
+      flex: 1,
+      borderRadius: 999,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    segmentBtnActive: { backgroundColor: colors.primary },
+    segmentText: { fontSize: 14, fontWeight: '700', color: colors.secondary },
+    segmentTextActive: { color: '#fff' },
+    searchRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.soft,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.ink,
+    },
+    inputLtr: { writingDirection: 'ltr', textAlign: 'left' },
+    searchBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      paddingHorizontal: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    recentBox: { marginTop: 18 },
+    recentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    recentTitle: { fontSize: 13, fontWeight: '700', color: colors.secondary },
+    clearRecentText: { fontSize: 13, fontWeight: '700', color: colors.danger },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      backgroundColor: colors.chip,
+      color: colors.primaryDeep,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      fontSize: 13,
+      overflow: 'hidden',
+    },
+    centerBox: { alignItems: 'center', marginTop: 48, gap: 12 },
+    hint: { fontSize: 14, color: colors.secondary },
+    message: { fontSize: 16, color: colors.ink, textAlign: 'center', lineHeight: 26 },
+    retryBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: 999,
+      paddingHorizontal: 22,
+      paddingVertical: 10,
+    },
+    retryText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    card: {
+      marginTop: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: colors.radius,
+      padding: 16,
+      backgroundColor: colors.card,
+    },
+    backText: {
+      marginTop: 20,
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.primaryDeep,
+    },
+    eqTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginTop: 20, marginBottom: 10 },
+    eqRow: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginBottom: 10,
+      backgroundColor: colors.card,
+    },
+    eqRowDisabled: { opacity: 0.45 },
+    eqDe: { fontSize: 19, fontWeight: '700', color: colors.ink, writingDirection: 'ltr', textAlign: 'left' },
+    eqFa: { fontSize: 13, color: colors.secondary, marginTop: 3 },
+  });
+}
