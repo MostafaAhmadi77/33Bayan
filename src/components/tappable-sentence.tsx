@@ -2,7 +2,7 @@
 // کلمه (بدون نشانه‌گذاری‌های دو سرش) صدا زده می‌شود تا پاپ‌آپ معنی‌اش باز شود.
 import { StyleSheet, Text, type TextStyle } from 'react-native';
 
-import { Brand } from '@/constants/theme';
+import { useAppTheme } from '@/lib/theme-context';
 
 export function TappableSentence({
   text,
@@ -17,6 +17,7 @@ export function TappableSentence({
   wordColor?: string;
   bullet?: boolean;
 }) {
+  const { colors } = useAppTheme();
   const tokens = text.split(/(\s+)/);
   return (
     <Text style={[styles.base, style]}>
@@ -29,7 +30,7 @@ export function TappableSentence({
           return (
             <Text
               key={i}
-              style={{ color: wordColor ?? Brand.primaryDeep }}
+              style={{ color: wordColor ?? colors.primaryDeep }}
               onPress={() => onWord(cleaned)}>
               {tok}
             </Text>

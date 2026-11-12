@@ -3,9 +3,11 @@ import { useAudioPlayer } from 'expo-audio';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { ttsUrl } from '@/lib/api';
-import { Brand } from '@/constants/theme';
+import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 
 export function SpeakButtons({ text, light = false }: { text: string; light?: boolean }) {
+  const { colors } = useAppTheme();
+  const styles = makeStyles(colors);
   const player = useAudioPlayer({ uri: ttsUrl(text) });
 
   const play = () => {
@@ -24,15 +26,17 @@ export function SpeakButtons({ text, light = false }: { text: string; light?: bo
   );
 }
 
-const styles = StyleSheet.create({
-  btn: {
-    backgroundColor: Brand.chip,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    alignSelf: 'flex-start',
-  },
-  btnLight: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  btnText: { color: Brand.primaryDeep, fontSize: 13, fontWeight: '600' },
-  btnTextLight: { color: '#fff' },
-});
+function makeStyles(colors: AppTheme['colors']) {
+  return StyleSheet.create({
+    btn: {
+      backgroundColor: colors.chip,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      alignSelf: 'flex-start',
+    },
+    btnLight: { backgroundColor: 'rgba(255,255,255,0.25)' },
+    btnText: { color: colors.primaryDeep, fontSize: 13, fontWeight: '600' },
+    btnTextLight: { color: '#fff' },
+  });
+}

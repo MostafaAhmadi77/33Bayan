@@ -6,12 +6,10 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import { useAppTheme } from '@/lib/theme-context';
 
 export default function AppTabs() {
   return (
@@ -41,30 +39,34 @@ export default function AppTabs() {
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const { colors } = useAppTheme();
   // پراپ‌های اسلات روتِر با تایپ ref پرس‌ابل در React 19 جور نیست؛ در زمان اجرا درست کار می‌کند
   return (
     <Pressable {...(props as any)} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+      <View
+        style={[
+          styles.tabButtonView,
+          { backgroundColor: isFocused ? colors.chip : 'transparent' },
+        ]}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: isFocused ? colors.ink : colors.secondary }}>
           {children}
-        </ThemedText>
-      </ThemedView>
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
 export function CustomTabList(props: TabListProps) {
+  const { colors } = useAppTheme();
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
+      <View style={[styles.innerContainer, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.brandText, { color: colors.ink, fontSize: 13, fontWeight: '700' }]}>
           33Bayan
-        </ThemedText>
+        </Text>
 
         {props.children}
-      </ThemedView>
+      </View>
     </View>
   );
 }

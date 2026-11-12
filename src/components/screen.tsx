@@ -4,13 +4,16 @@ import type { ReactNode } from 'react';
 import { ScrollView, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAppTheme } from '@/lib/theme-context';
+
 export function ScreenScroll({
   children,
   contentContainerStyle,
   ...props
 }: ScrollViewProps & { children: ReactNode }) {
+  const { colors } = useAppTheme();
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <ScrollView
         {...props}
         contentContainerStyle={[
