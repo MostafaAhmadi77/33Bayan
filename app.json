@@ -2,7 +2,7 @@
   "expo": {
     "name": "33Bayan",
     "slug": "33bayan",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bayan33",
@@ -41,6 +41,12 @@
       "eas": {
         "projectId": "15d7211a-c080-4c60-832b-60d638c34833"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/15d7211a-c080-4c60-832b-60d638c34833"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
