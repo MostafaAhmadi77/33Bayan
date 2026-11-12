@@ -78,3 +78,45 @@ export const Brand = {
   danger: '#FF5A5A',
   radius: 20,
 } as const;
+
+/** رنگ‌های تم (روشن/تیره) که همه‌ی صفحه‌ها از طریق useAppTheme می‌گیرند */
+export type ThemeColors = {
+  primary: string;
+  primaryDeep: string;
+  soft: string;
+  chip: string;
+  ink: string;
+  secondary: string;
+  border: string;
+  success: string;
+  amber: string;
+  danger: string;
+  radius: number;
+  background: string;
+  surface: string;
+  card: string;
+};
+
+export const LightBrand: ThemeColors = {
+  ...Brand,
+  background: '#FFFFFF',
+  surface: '#FFFFFF',
+  card: '#FFFFFF',
+};
+
+export const DarkBrand: ThemeColors = {
+  primary: '#8B76FF',
+  primaryDeep: '#A99CFF',
+  soft: '#23233A',
+  chip: '#2C2C46',
+  ink: '#F2F2F8',
+  secondary: '#9A9AB5',
+  border: '#32324A',
+  success: '#34C77B',
+  amber: '#FFB020',
+  danger: '#FF6B6B',
+  radius: 20,
+  background: '#12121C',
+  surface: '#1C1C2A',
+  card: '#1E1E2E',
+};
