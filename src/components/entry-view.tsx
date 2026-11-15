@@ -9,6 +9,7 @@ import { useAppTheme } from '@/lib/theme-context';
 
 import { SpeakButtons } from './speak-button';
 import { TappableSentence } from './tappable-sentence';
+import { TranslatableText } from './translatable-text';
 import { WordPopup } from './word-popup';
 
 type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
@@ -97,10 +98,7 @@ export function EntryView({
       {entry.definitions.length ? (
         <Section title="📖 معنی‌ها (آلمانی)" styles={styles}>
           {entry.definitions.map((d, i) => (
-            <Text key={i} style={[styles.line, styles.ltr]}>
-              {i + 1}.{' '}
-              <TappableSentence text={d} onWord={openWord} bullet={false} style={styles.line} />
-            </Text>
+            <TranslatableText key={i} text={d} number={i + 1} onWord={openWord} style={styles.line} />
           ))}
         </Section>
       ) : null}

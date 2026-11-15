@@ -18,6 +18,7 @@ import { leitnerAdd, lookupGerman, ttsUrl, type Entry } from '@/lib/api';
 import { logActivity } from '@/lib/storage';
 
 import { TappableSentence } from './tappable-sentence';
+import { TranslatableText } from './translatable-text';
 
 const SENSE_SIZES = [15, 17, 19];
 const ICON_COLOR = '#C9C9D1';
@@ -239,18 +240,14 @@ export function WordPopup({
                       <>
                         <Text style={styles.detailsLabel}>تعریف آلمانی</Text>
                         {entry.definitions.slice(0, 3).map((d, i) => (
-                          <View key={i} style={styles.defRow}>
-                            <Text style={styles.defNum}>{i + 1}.</Text>
-                            <View style={styles.defBody}>
-                              <TappableSentence
-                                text={d}
-                                onWord={drill}
-                                wordColor="#AFA3FF"
-                                bullet={false}
-                                style={styles.defText}
-                              />
-                            </View>
-                          </View>
+                          <TranslatableText
+                            key={i}
+                            text={d}
+                            number={i + 1}
+                            onWord={drill}
+                            dark
+                            style={styles.defText}
+                          />
                         ))}
                       </>
                     ) : null}
