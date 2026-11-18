@@ -53,19 +53,41 @@ async function call(path: string, init?: RequestInit) {
   return res.json();
 }
 
-export async function lookupGerman(q: string) {
-  return call(`/api/app?action=lookup&dir=de&q=${encodeURIComponent(q)}`) as Promise<
+export async function lookupGerman(q: string, fast = true) {
+  const suffix = fast ? '&fast=1' : '';
+  return call(`/api/app?action=lookup&dir=de&q=${encodeURIComponent(q)}${suffix}`) as Promise<
     { ok: boolean; found: boolean; entry?: Entry; word: string }
   >;
 }
 
-export async function lookupPersian(q: string) {
-  return call(`/api/app?action=lookup&dir=fa&q=${encodeURIComponent(q)}`) as Promise<{
+export async function lookupPersian(q: string, fast = true) {
+  const suffix = fast ? '&fast=1' : '';
+  return call(`/api/app?action=lookup&dir=fa&q=${encodeURIComponent(q)}${suffix}`) as Promise<{
     ok: boolean;
     found: boolean;
     word: string;
     equivalents: { de: string; entry: Entry | null }[];
   }>;
+}
+
+export type LevelExample = { de: string; fa: string };
+
+/** مثال‌های سطح‌بندی‌شده برای یک کلمه (ساخته‌ی Gemini در سرور).
+ *  روی هر خطایی {ok:false, examples:[]} برمی‌گرداند تا صفحه خراب نشود. */
+export async function fetchLevelExamples(
+  word: string,
+  level: string,
+  count: number,
+): Promise<{ ok: boolean; examples: LevelExample[] }> {
+  try {
+    const r = (await call(
+      `/api/app?action=examples&word=${encodeURIComponent(word)}&level=${level}&count=${count}`,
+    )) as { ok: boolean; examples?: LevelExample[] };
+    if (!r.ok || !Array.isArray(r.examples)) return { ok: false, examples: [] };
+    return { ok: true, examples: r.examples.filter((e) => e && typeof e.de === 'string' && e.de.trim()) };
+  } catch {
+    return { ok: false, examples: [] };
+  }
 }
 
 export async function translate(text: string) {

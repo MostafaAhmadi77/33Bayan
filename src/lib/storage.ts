@@ -100,3 +100,26 @@ export const setThemeMode = (m: ThemeMode) => AsyncStorage.setItem(THEME_KEY, m)
 export async function clearRecent(): Promise<void> {
   await AsyncStorage.removeItem(RECENT_KEY);
 }
+
+// ---- تنظیمات مثال‌ها (تعداد + سطح) ----
+// تعداد مثال‌هایی که در صفحه‌ی مدخل نشان داده می‌شود (۱ تا ۵، پیش‌فرض ۲)
+// و سطح زبانی کاربر برای مثال‌های ساخته‌شده (پیش‌فرض B1)
+export type ExampleLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+const EXAMPLE_LEVELS: ExampleLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
+export const EXAMPLE_COUNT_KEY = 'bayan:exCount';
+export const EXAMPLE_LEVEL_KEY = 'bayan:exLevel';
+
+export async function getExampleCount(): Promise<number> {
+  const n = Number(await AsyncStorage.getItem(EXAMPLE_COUNT_KEY));
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : 2;
+}
+
+export const setExampleCount = (n: number) =>
+  AsyncStorage.setItem(EXAMPLE_COUNT_KEY, String(Math.min(5, Math.max(1, Math.round(n)))));
+
+export async function getExampleLevel(): Promise<ExampleLevel> {
+  const v = await AsyncStorage.getItem(EXAMPLE_LEVEL_KEY);
+  return (EXAMPLE_LEVELS as string[]).includes(v ?? '') ? (v as ExampleLevel) : 'B1';
+}
+
+export const setExampleLevel = (l: ExampleLevel) => AsyncStorage.setItem(EXAMPLE_LEVEL_KEY, l);
