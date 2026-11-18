@@ -20,6 +20,8 @@ export type Entry = {
   collocations: string[];
   imageUrl: string | null;
   speak: string;
+  /** مدخل موقتِ ساخته‌شده از دیکشنری محلی، پیش از رسیدن داده‌ی سرور */
+  local?: boolean;
 };
 
 export type CardEntry = {
