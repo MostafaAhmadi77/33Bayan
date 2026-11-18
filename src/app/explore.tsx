@@ -34,6 +34,20 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 const hasPersian = (s: string) => /[\u0600-\u06FF]/.test(s);
 
+/** اجتماع معنی‌های فارسی محلی و سرور: هر دو را روی «،» می‌شکند،
+ *  تکراری‌ها را حذف می‌کند (ترتیب حفظ می‌شود، محلی اول) و با «، » می‌چسباند. */
+function unionPersian(local: string | null, server: string | null): string | null {
+  const items: string[] = [];
+  for (const s of [local, server]) {
+    if (!s) continue;
+    for (const part of s.split('،')) {
+      const t = part.trim();
+      if (t && !items.includes(t)) items.push(t);
+    }
+  }
+  return items.length ? items.join('، ') : null;
+}
+
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -102,6 +116,7 @@ export default function ExploreScreen() {
             collocations: [],
             imageUrl: null,
             speak: local.word,
+            local: true,
           };
           setEntry(localEntry);
           setStatus('result');
@@ -114,7 +129,8 @@ export default function ExploreScreen() {
             if (r.found && r.entry) {
               setEntry({
                 ...r.entry,
-                persian: r.entry.persian ?? localEntry.persian,
+                // معنی فارسی: اجتماع همه‌ی معانیِ محلی و سرور، نه فقط یکی‌شان
+                persian: unionPersian(localEntry.persian, r.entry.persian),
                 type: r.entry.type ?? localEntry.type,
                 article: r.entry.article ?? localEntry.article,
                 plural: r.entry.plural ?? localEntry.plural,
