@@ -64,6 +64,7 @@ export function EntryView({
 
   // ---- مثال‌ها: تعداد و سطح از پروفایل می‌آید ----
   const [exCount, setExCount] = useState(2);
+  const [exLevel, setExLevel] = useState<ExampleLevel>('B1');
   const [generated, setGenerated] = useState<LevelExample[]>([]);
   const [topping, setTopping] = useState(false);
 
@@ -79,10 +80,15 @@ export function EntryView({
       });
   }, [entry]);
 
-  const shownExamples = pool.slice(0, exCount);
+  // مثال‌های دیکشنری وقتی گروه اصلی‌اند تا سقف تعداد خواسته‌شده نشان داده
+  // می‌شوند؛ وقتی مثال‌های ساخته‌شده آمدند، فقط تا ۲ تای اول‌شان زیر آن‌ها می‌آیند.
+  const dictShown = generated.length ? pool.slice(0, 2) : pool.slice(0, exCount);
 
-  // با هر مدخل تازه: تنظیمات را بخوان؛ اگر مثال‌های آماده کمتر از تعداد
-  // خواسته‌شده بود، بقیه را در سطح کاربر از سرور بساز.
+  // با هر مدخل تازه: تنظیمات (تعداد و سطح) را بخوان و همیشه به تعداد
+  // خواسته‌شده، در سطح کاربر، مثال بساز — نه فقط وقتی مثال‌های دیکشنری کم است.
+  // برای مدخلِ موقتِ محلی (entry.local) چیزی ساخته نمی‌شود: مدخل هنوز داده‌ی
+  // سرور ندارد و مثالِ ساخته‌شده روی آن غلط از آب درمی‌آید؛ وقتی مدخل واقعی
+  // رسید، افکت با آبجکت تازه‌ی entry دوباره اجرا می‌شود.
   useEffect(() => {
     let cancelled = false;
     setGenerated([]);
@@ -94,13 +100,13 @@ export function EntryView({
       ]);
       if (cancelled) return;
       setExCount(count);
-      const need = count - pool.length;
-      if (need <= 0) return;
+      setExLevel(level);
+      if (entry.local) return;
       setTopping(true);
-      const r = await fetchLevelExamples(entry.word, level, need);
+      const r = await fetchLevelExamples(entry.word, level, count);
       if (cancelled) return;
       setTopping(false);
-      if (r.ok && r.examples.length) setGenerated(r.examples.slice(0, need));
+      if (r.ok && r.examples.length) setGenerated(r.examples.slice(0, count));
     })();
     return () => {
       cancelled = true;
@@ -153,23 +159,37 @@ export function EntryView({
         </Section>
       ) : null}
 
-      {/* مثال‌ها: دیکشنری + DWDS در یک بخش؛ اگر کمتر از تعداد خواسته‌شده بود،
-          بقیه در سطح کاربر ساخته می‌شوند. همه با آیکون 🌐 ترجمه‌ی فارسی دارند. */}
-      {shownExamples.length + generated.length > 0 || topping ? (
+      {/* مثال‌ها: گروه اصلی مثال‌های ساخته‌شده برای سطح و تعداد کاربر است؛
+          زیر آن تا ۲ مثال از دیکشنری می‌آید. اگر ساخت مثال ناموفق بود،
+          مثال‌های دیکشنری تا سقف تعداد خواسته‌شده نشان داده می‌شوند.
+          همه با آیکون 🌐 ترجمه‌ی فارسی دارند. */}
+      {generated.length + dictShown.length > 0 || topping ? (
         <Section title="💬 مثال‌ها" styles={styles}>
-          {shownExamples.map((x, i) => (
-            <TranslatableText key={`pool-${i}`} text={x} onWord={openWord} style={styles.line} />
-          ))}
-          {generated.map((g, i) => (
-            <TranslatableText
-              key={`gen-${i}`}
-              text={g.de}
-              prefetchedPersian={g.fa}
-              onWord={openWord}
-              style={styles.line}
-            />
-          ))}
-          {topping && shownExamples.length + generated.length === 0 ? (
+          {generated.length ? (
+            <>
+              <Text style={styles.subHeader}>
+                ساخته‌شده برای سطح {exLevel} • {exCount} مثال
+              </Text>
+              {generated.map((g, i) => (
+                <TranslatableText
+                  key={`gen-${i}`}
+                  text={g.de}
+                  prefetchedPersian={g.fa}
+                  onWord={openWord}
+                  style={styles.line}
+                />
+              ))}
+            </>
+          ) : null}
+          {dictShown.length ? (
+            <>
+              <Text style={styles.subHeader}>📚 از دیکشنری</Text>
+              {dictShown.map((x, i) => (
+                <TranslatableText key={`pool-${i}`} text={x} onWord={openWord} style={styles.line} />
+              ))}
+            </>
+          ) : null}
+          {topping && generated.length + dictShown.length === 0 ? (
             <View style={styles.toppingRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.toppingText}>✨ در حال ساخت مثال…</Text>
@@ -288,6 +308,7 @@ function makeStyles(colors: ThemeColors) {
     persian: { fontSize: 22, fontWeight: '700', color: colors.primaryDeep, marginTop: 12 },
     section: { marginTop: 18 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: 6 },
+    subHeader: { fontSize: 13, fontWeight: '700', color: colors.secondary, marginTop: 6, marginBottom: 2 },
     toppingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
     toppingText: { fontSize: 13, color: colors.secondary },
     line: { fontSize: 15, lineHeight: 24, color: colors.ink },
