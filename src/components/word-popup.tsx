@@ -15,9 +15,8 @@ import { useAudioPlayer } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
 
 import { leitnerAdd, lookupGerman, ttsUrl, type Entry } from '@/lib/api';
-import { logActivity } from '@/lib/storage';
+import { getExampleCount, logActivity } from '@/lib/storage';
 
-import { TappableSentence } from './tappable-sentence';
 import { TranslatableText } from './translatable-text';
 
 const SENSE_SIZES = [15, 17, 19];
@@ -66,12 +65,27 @@ export function WordPopup({
   const [copied, setCopied] = useState(false);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  // تعداد مثال‌ها از تنظیمات پروفایل می‌آید
+  const [exCount, setExCount] = useState(2);
   const scrollRef = useRef<any>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // هر بار که کلمه‌ی تازه‌ای از بیرون داده شد، از همان شروع کن
   useEffect(() => {
     setCurrentWord(word);
+  }, [word]);
+
+  // تعداد مثال‌ها را با هر کلمه‌ی تازه از نو بخوان (تنظیمات ممکن است عوض شده باشد)
+  useEffect(() => {
+    let active = true;
+    getExampleCount()
+      .then((c) => {
+        if (active) setExCount(c);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, [word]);
 
   useEffect(() => {
@@ -239,7 +253,7 @@ export function WordPopup({
                     {entry.definitions.length > 0 ? (
                       <>
                         <Text style={styles.detailsLabel}>تعریف آلمانی</Text>
-                        {entry.definitions.slice(0, 3).map((d, i) => (
+                        {entry.definitions.map((d, i) => (
                           <TranslatableText
                             key={i}
                             text={d}
@@ -252,17 +266,28 @@ export function WordPopup({
                       </>
                     ) : null}
 
-                    {entry.examples.slice(0, 2).map((ex, i) => (
-                      <View key={i} style={styles.exRow}>
-                        <TappableSentence
+                    {/* مثال‌ها: دیکشنری + DWDS در یک فهرست، تا سقف تعداد تنظیم‌شده،
+                        هر کدام با آیکون 🌐 ترجمه‌ی فارسی */}
+                    {(() => {
+                      const seen = new Set<string>();
+                      const pool = [...entry.examples, ...entry.dwdsExamples]
+                        .map((s) => s.trim())
+                        .filter((s) => {
+                          if (!s || seen.has(s)) return false;
+                          seen.add(s);
+                          return true;
+                        })
+                        .slice(0, exCount);
+                      return pool.map((ex, i) => (
+                        <TranslatableText
+                          key={`ex-${i}`}
                           text={ex}
                           onWord={drill}
-                          wordColor="#AFA3FF"
-                          bullet
+                          dark
                           style={styles.exText}
                         />
-                      </View>
-                    ))}
+                      ));
+                    })()}
                   </View>
                 ) : null}
               </>

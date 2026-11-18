@@ -1,7 +1,7 @@
 // یک جمله‌ی آلمانی (معمولاً یک تعریف) با آیکون ترجمه:
 // با زدن 🌐، ترجمه‌ی فارسی همان جمله از سرور گرفته و زیرش نشان داده می‌شود.
 // زدن دوباره‌ی آیکون، ترجمه را جمع می‌کند؛ ترجمه‌ی گرفته‌شده کش می‌شود.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import { translate } from '@/lib/api';
@@ -17,17 +17,26 @@ export function TranslatableText({
   number,
   style,
   dark = false,
+  prefetchedPersian,
 }: {
   text: string;
   onWord: (w: string) => void;
   number?: number;
   style?: TextStyle;
   dark?: boolean;
+  /** ترجمه‌ی آماده (مثلاً از سرور): اگر داده شده، آیکون بدون هیچ درخواست شبکه‌ای آن را نشان می‌دهد */
+  prefetchedPersian?: string | null;
 }) {
   const { colors } = useAppTheme();
   const [state, setState] = useState<State>('idle');
   const [persian, setPersian] = useState<string | null>(null);
   const busy = useRef(false);
+
+  // جمله عوض شد (مدخل تازه): ترجمه‌ی قبلی مال این جمله نیست، از اول شروع کن
+  useEffect(() => {
+    setPersian(null);
+    setState('idle');
+  }, [text]);
 
   const toggle = async () => {
     if (state === 'shown') {
@@ -35,6 +44,12 @@ export function TranslatableText({
       return;
     }
     if (state === 'hidden' && persian) {
+      setState('shown');
+      return;
+    }
+    // ترجمه‌ی آماده داریم: بدون شبکه نشان بده
+    if (prefetchedPersian) {
+      setPersian(prefetchedPersian);
       setState('shown');
       return;
     }
@@ -81,7 +96,7 @@ export function TranslatableText({
           accessibilityLabel="ترجمه به فارسی"
           style={[styles.iconBtn, { backgroundColor: iconBg }]}>
           {state === 'loading' ? (
-            <ActivityIndicator size="small" color={dark || state === 'shown' ? '#fff' : colors.primaryDeep} />
+            <ActivityIndicator size="small" color={dark ? '#fff' : colors.primaryDeep} />
           ) : (
             <Text style={styles.icon}>{state === 'shown' ? '🔽' : '🌐'}</Text>
           )}

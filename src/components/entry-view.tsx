@@ -1,10 +1,15 @@
 // نمایش کامل یک مدخل دیکشنری: تصویر، آرتیکل/جمع، معنی فارسی، تعریف‌ها، مثال‌ها،
 // مترادف/متضاد و ترکیب‌های رایج + دکمه‌ی افزودن به لایتنر
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { Entry } from '@/lib/api';
+import { fetchLevelExamples, type Entry, type LevelExample } from '@/lib/api';
+import {
+  getExampleCount,
+  getExampleLevel,
+  type ExampleLevel,
+} from '@/lib/storage';
 import { useAppTheme } from '@/lib/theme-context';
 
 import { SpeakButtons } from './speak-button';
@@ -57,6 +62,51 @@ export function EntryView({
   const [busy, setBusy] = useState(false);
   const [popupWord, setPopupWord] = useState<string | null>(null);
 
+  // ---- مثال‌ها: تعداد و سطح از پروفایل می‌آید ----
+  const [exCount, setExCount] = useState(2);
+  const [generated, setGenerated] = useState<LevelExample[]>([]);
+  const [topping, setTopping] = useState(false);
+
+  // همه‌ی مثال‌های دیکشنری + DWDS، بدون تکرار
+  const pool = useMemo(() => {
+    const seen = new Set<string>();
+    return [...entry.examples, ...entry.dwdsExamples]
+      .map((s) => s.trim())
+      .filter((s) => {
+        if (!s || seen.has(s)) return false;
+        seen.add(s);
+        return true;
+      });
+  }, [entry]);
+
+  const shownExamples = pool.slice(0, exCount);
+
+  // با هر مدخل تازه: تنظیمات را بخوان؛ اگر مثال‌های آماده کمتر از تعداد
+  // خواسته‌شده بود، بقیه را در سطح کاربر از سرور بساز.
+  useEffect(() => {
+    let cancelled = false;
+    setGenerated([]);
+    setTopping(false);
+    (async () => {
+      const [count, level] = await Promise.all([
+        getExampleCount().catch(() => 2),
+        getExampleLevel().catch((): ExampleLevel => 'B1'),
+      ]);
+      if (cancelled) return;
+      setExCount(count);
+      const need = count - pool.length;
+      if (need <= 0) return;
+      setTopping(true);
+      const r = await fetchLevelExamples(entry.word, level, need);
+      if (cancelled) return;
+      setTopping(false);
+      if (r.ok && r.examples.length) setGenerated(r.examples.slice(0, need));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entry, pool]);
+
   const openWord = (w: string) => setPopupWord(w);
 
   const add = async () => {
@@ -103,19 +153,28 @@ export function EntryView({
         </Section>
       ) : null}
 
-      {entry.examples.length ? (
+      {/* مثال‌ها: دیکشنری + DWDS در یک بخش؛ اگر کمتر از تعداد خواسته‌شده بود،
+          بقیه در سطح کاربر ساخته می‌شوند. همه با آیکون 🌐 ترجمه‌ی فارسی دارند. */}
+      {shownExamples.length + generated.length > 0 || topping ? (
         <Section title="💬 مثال‌ها" styles={styles}>
-          {entry.examples.map((x, i) => (
-            <TappableSentence key={i} text={x} onWord={openWord} style={styles.line} />
+          {shownExamples.map((x, i) => (
+            <TranslatableText key={`pool-${i}`} text={x} onWord={openWord} style={styles.line} />
           ))}
-        </Section>
-      ) : null}
-
-      {entry.dwdsExamples.length ? (
-        <Section title="📚 مثال (DWDS)" styles={styles}>
-          {entry.dwdsExamples.map((x, i) => (
-            <TappableSentence key={i} text={x} onWord={openWord} style={styles.line} />
+          {generated.map((g, i) => (
+            <TranslatableText
+              key={`gen-${i}`}
+              text={g.de}
+              prefetchedPersian={g.fa}
+              onWord={openWord}
+              style={styles.line}
+            />
           ))}
+          {topping && shownExamples.length + generated.length === 0 ? (
+            <View style={styles.toppingRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.toppingText}>✨ در حال ساخت مثال…</Text>
+            </View>
+          ) : null}
         </Section>
       ) : null}
 
@@ -229,6 +288,8 @@ function makeStyles(colors: ThemeColors) {
     persian: { fontSize: 22, fontWeight: '700', color: colors.primaryDeep, marginTop: 12 },
     section: { marginTop: 18 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: 6 },
+    toppingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
+    toppingText: { fontSize: 13, color: colors.secondary },
     line: { fontSize: 15, lineHeight: 24, color: colors.ink },
     ltr: { writingDirection: 'ltr', textAlign: 'left' },
     addBox: {

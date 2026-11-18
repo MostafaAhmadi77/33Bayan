@@ -1,6 +1,6 @@
 // متن آلمانی با کلمه‌های قابل لمس: روی هر کلمه بزنی، کال‌بک با شکل پاک‌شده‌ی
 // کلمه (بدون نشانه‌گذاری‌های دو سرش) صدا زده می‌شود تا پاپ‌آپ معنی‌اش باز شود.
-import { StyleSheet, Text, type TextStyle } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 
 import { useAppTheme } from '@/lib/theme-context';
 
@@ -13,7 +13,7 @@ export function TappableSentence({
 }: {
   text: string;
   onWord: (w: string) => void;
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   wordColor?: string;
   bullet?: boolean;
 }) {
