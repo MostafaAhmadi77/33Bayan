@@ -8,5 +8,5 @@ jobs:
     environment: preview
     params:
       channel: preview
-      message: "33Bayan 1.4.0"
+      message: "33Bayan 1.4.1"
       platform: all
