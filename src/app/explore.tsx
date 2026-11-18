@@ -1,7 +1,9 @@
 // صفحه‌ی دیکشنری: جست‌وجوی آلمانی → فارسی و فارسی → آلمانی
 // نتیجه‌ی آلمانی کارت کامل مدخل را نشان می‌دهد؛ نتیجه‌ی فارسی فهرست معادل‌هاست
 // و با لمس هر معادل، کارت کامل همان کلمه باز می‌شود.
-// جست‌وجو خودکار است: ۲ ثانیه بعد از آخرین کلید (debounce) اجرا می‌شود.
+// جست‌وجو خودکار است: ۵۰۰ میلی‌ثانیه بعد از آخرین کلید (debounce) اجرا می‌شود.
+// معنی اول از دیکشنری محلیِ باندل‌شده می‌آید (فوری، بدون شبکه) و بعد سرور
+// در پس‌زمینه مدخل را با تعریف و مثال و عکس غنی می‌کند.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +23,7 @@ import {
   type Entry,
 } from '@/lib/api';
 import { clearRecent, getRecent, logActivity, pushRecent, setLastWord } from '@/lib/storage';
+import { lookupLocal, lookupLocalFa } from '@/lib/local-dict';
 import { useAppTheme } from '@/lib/theme-context';
 
 type Dir = 'de' | 'fa';
@@ -61,6 +64,12 @@ export default function ExploreScreen() {
     await logActivity('add');
   };
 
+  // جست‌وجوی محلی‌اول (local-first):
+  // مرحله‌ی صفر — دیکشنریِ باندل‌شده در اپ: معنی فوراً و بدون شبکه نشان داده
+  // می‌شود. بعد یک جست‌وجوی سریع سرور (fast=1) در پس‌زمینه می‌آید و اگر هنوز
+  // آخرین جست‌وجو همین است، مدخل را با داده‌ی غنی‌شده (تعریف، مثال، عکس، DWDS)
+  // جایگزین می‌کند؛ معنیِ فارسیِ محلی می‌ماند اگر سرور چیز بهتری نداشت.
+  // اگر دیکشنری محلی چیزی نداشت، مثل قبل با جست‌وجوی سریع سرور جلو می‌رویم.
   const search = useCallback(
     async (raw: string, direction: Dir) => {
       const q = raw.trim();
@@ -69,13 +78,79 @@ export default function ExploreScreen() {
       setQuery(q);
       setDir(direction);
       setSearched(q);
-      setStatus('loading');
       setSelected(null);
       setEntry(null);
       setEquivalents([]);
+
+      if (direction === 'de') {
+        const local = lookupLocal(q);
+        if (local) {
+          const localEntry: Entry = {
+            word: local.word,
+            type: local.type,
+            article: local.article,
+            plural: local.plural,
+            pluralFull: local.plural ?? '',
+            persian: local.fa,
+            english: null,
+            ipa: null,
+            definitions: [],
+            examples: [],
+            synonyms: [],
+            antonyms: [],
+            dwdsExamples: [],
+            collocations: [],
+            imageUrl: null,
+            speak: local.word,
+          };
+          setEntry(localEntry);
+          setStatus('result');
+          await pushRecent(localEntry.word);
+          await setLastWord(localEntry.word);
+          if (seq !== searchSeq.current) return;
+          try {
+            const r = await lookupGerman(q, true);
+            if (seq !== searchSeq.current) return;
+            if (r.found && r.entry) {
+              setEntry({
+                ...r.entry,
+                persian: r.entry.persian ?? localEntry.persian,
+                type: r.entry.type ?? localEntry.type,
+                article: r.entry.article ?? localEntry.article,
+                plural: r.entry.plural ?? localEntry.plural,
+                pluralFull: r.entry.pluralFull || localEntry.pluralFull,
+              });
+            }
+          } catch {
+            // سرور نرسید؛ نتیجه‌ی محلی سر جایش می‌ماند
+          }
+          if (seq === searchSeq.current) reloadRecent();
+          return;
+        }
+      } else {
+        const localWords = lookupLocalFa(q);
+        if (localWords.length) {
+          setEquivalents(localWords.map((w) => ({ de: w, entry: null })));
+          setStatus('result');
+          await pushRecent(q);
+          if (seq !== searchSeq.current) return;
+          try {
+            const r = await lookupPersian(q, true);
+            if (seq !== searchSeq.current) return;
+            if (r.found && r.equivalents.length) setEquivalents(r.equivalents);
+          } catch {
+            // سرور نرسید؛ فهرست محلی سر جایش می‌ماند
+          }
+          if (seq === searchSeq.current) reloadRecent();
+          return;
+        }
+      }
+
+      // دیکشنری محلی چیزی نداشت: جست‌وجوی سریع سرور
+      setStatus('loading');
       try {
         if (direction === 'de') {
-          const r = await lookupGerman(q);
+          const r = await lookupGerman(q, true);
           if (seq !== searchSeq.current) return;
           if (r.found && r.entry) {
             setEntry(r.entry);
@@ -86,7 +161,7 @@ export default function ExploreScreen() {
             setStatus('notFound');
           }
         } else {
-          const r = await lookupPersian(q);
+          const r = await lookupPersian(q, true);
           if (seq !== searchSeq.current) return;
           if (r.found && r.equivalents.length) {
             setEquivalents(r.equivalents);
@@ -106,9 +181,9 @@ export default function ExploreScreen() {
     [reloadRecent],
   );
 
-  // جست‌وجوی خودکار: ۲ ثانیه بعد از اینکه کاربر چیزی تایپ نکرد.
+  // جست‌وجوی خودکار: ۵۰۰ میلی‌ثانیه بعد از اینکه کاربر چیزی تایپ نکرد.
   // هر کلید تایمر را از اول می‌اندازد (cleanup)؛ تغییر جهت هم با همان
-  // پرس‌وجوی فعلی بعد از ۲ ثانیه جست‌وجو می‌کند.
+  // پرس‌وجوی فعلی بعد از ۵۰۰ میلی‌ثانیه جست‌وجو می‌کند.
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
@@ -124,7 +199,7 @@ export default function ExploreScreen() {
     if (trimmed === searched) return;
     const t = setTimeout(() => {
       void search(query, dir);
-    }, 2000);
+    }, 500);
     return () => clearTimeout(t);
   }, [query, dir, searched, search]);
 
@@ -251,9 +326,8 @@ export default function ExploreScreen() {
           {equivalents.map((eq, i) => (
             <Pressable
               key={`${eq.de}-${i}`}
-              disabled={!eq.entry}
-              onPress={() => eq.entry && setSelected(eq.entry)}
-              style={[styles.eqRow, !eq.entry && styles.eqRowDisabled]}>
+              onPress={() => (eq.entry ? setSelected(eq.entry) : search(eq.de, 'de'))}
+              style={styles.eqRow}>
               <Text style={styles.eqDe}>
                 {eq.entry?.article ? `${eq.entry.article} ` : ''}
                 {eq.de}
