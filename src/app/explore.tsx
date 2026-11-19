@@ -447,12 +447,11 @@ function makeStyles(colors: ThemeColors) {
     },
     retryText: { color: '#fff', fontSize: 14, fontWeight: '700' },
     card: {
+      // پوسته‌ی بی‌حاشیه دور مدخل: خود EntryView ظاهرش را می‌سازد و هیرو
+      // باید لبه‌به‌لبه باشد (فقط استایل؛ محتوا و ترتیب دست‌نخورده)
       marginTop: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
       borderRadius: colors.radius,
-      padding: 16,
-      backgroundColor: colors.card,
+      overflow: 'hidden',
     },
     backText: {
       marginTop: 20,
