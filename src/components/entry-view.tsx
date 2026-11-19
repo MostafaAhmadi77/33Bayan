@@ -1,8 +1,10 @@
-// نمایش کامل یک مدخل دیکشنری: تصویر، آرتیکل/جمع، معنی فارسی، تعریف‌ها، مثال‌ها،
-// مترادف/متضاد و ترکیب‌های رایج + دکمه‌ی افزودن به لایتنر
+// نمایش کامل یک مدخل دیکشنری: هیروی عکس با کلمه روی آن، کارت‌های شیشه‌ای
+// (چیپ‌ها + معنی فارسی)، تعریف‌ها، مثال‌ها، مترادف/متضاد و ترکیب‌های رایج
+// + دکمه‌ی افزودن به لایتنر — طراحی «شیشه تیره» (v1.5.0)
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { fetchLevelExamples, type Entry, type LevelExample } from '@/lib/api';
 import {
@@ -31,6 +33,16 @@ const TYPE_FA: Record<string, string> = {
   Interjektion: 'صوت',
   Artikel: 'حرف تعریف',
 };
+
+/** کلمه‌ی سرخط (entry.speak) خودش آرتیکل را دارد («der Baum»)؛ برای رنگِ
+    بنفشِ آرتیکل روی هیرو، همان رشته را دو تکه می‌کنیم — بدون تکرار.
+    اگر speak با آرتیکل شروع نشد (مثلاً مدخل موقتِ محلی)، یک‌تکه برمی‌گردد. */
+function splitHeadword(entry: Entry): { article: string | null; rest: string } {
+  if (entry.article && entry.speak.startsWith(entry.article + ' ')) {
+    return { article: entry.article, rest: entry.speak.slice(entry.article.length + 1) };
+  }
+  return { article: null, rest: entry.speak };
+}
 
 function Section({ title, children, styles }: { title: string; children: React.ReactNode; styles: Styles }) {
   return (
@@ -61,8 +73,8 @@ export function EntryView({
   /** تلاش دوباره برای آوردن معنی کاملِ مدخل موقت */
   onRetry?: () => void;
 }) {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { colors, isDark } = useAppTheme();
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const [interval, setInterval] = useState<1 | 3 | 7>(1);
   const [added, setAdded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -132,27 +144,44 @@ export function EntryView({
     }
   };
 
+  const { article: heroArticle, rest: heroRest } = splitHeadword(entry);
+
   return (
     <View>
       {entry.imageUrl ? (
-        <Image source={{ uri: entry.imageUrl }} style={styles.image} contentFit="cover" transition={250} />
-      ) : null}
+        <View style={styles.hero}>
+          <Image source={{ uri: entry.imageUrl }} style={styles.heroImage} contentFit="cover" transition={250} />
+          <LinearGradient
+            colors={['rgba(14,13,26,0.05)', 'rgba(14,13,26,0.92)']}
+            locations={[0.3, 0.88]}
+            style={styles.heroGradient}
+          />
+          <View style={styles.heroText}>
+            {entry.ipa ? <Text style={styles.heroIpa}>/{entry.ipa}/</Text> : null}
+            <Text style={styles.heroWord} selectable>
+              {heroArticle ? <Text style={styles.heroArticle}>{heroArticle} </Text> : null}
+              {heroRest}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.headRow}>
+          <Text style={styles.word} selectable>
+            {entry.speak}
+          </Text>
+          {entry.ipa ? <Text style={styles.ipa}>/{entry.ipa}/</Text> : null}
+        </View>
+      )}
 
-      <View style={styles.headRow}>
-        {entry.article ? <Text style={styles.article}>{entry.article}</Text> : null}
-        <Text style={styles.word} selectable>
-          {entry.speak}
-        </Text>
-        {entry.ipa ? <Text style={styles.ipa}>/{entry.ipa}/</Text> : null}
+      <View style={styles.glass}>
+        <View style={styles.chips}>
+          {entry.type ? <Text style={styles.chip}>{TYPE_FA[entry.type] || entry.type}</Text> : null}
+          {entry.plural ? <Text style={[styles.chip, styles.chipGreen]}>جمع: {entry.pluralFull}</Text> : null}
+          {entry.english ? <Text style={[styles.chip, styles.chipLtr]}>{entry.english}</Text> : null}
+        </View>
+
+        {entry.persian ? <Text style={styles.persian}>{entry.persian}</Text> : null}
       </View>
-
-      <View style={styles.chips}>
-        {entry.type ? <Text style={styles.chip}>{TYPE_FA[entry.type] || entry.type}</Text> : null}
-        {entry.plural ? <Text style={styles.chip}>جمع: {entry.pluralFull}</Text> : null}
-        {entry.english ? <Text style={[styles.chip, styles.chipLtr]}>{entry.english}</Text> : null}
-      </View>
-
-      {entry.persian ? <Text style={styles.persian}>{entry.persian}</Text> : null}
 
       {entry.nounForm ? (
         <Section title="📎 به‌عنوان اسم" styles={styles}>
@@ -316,49 +345,77 @@ export function EntryView({
   );
 }
 
-function makeStyles(colors: ThemeColors) {
+function makeStyles(colors: ThemeColors, isDark: boolean) {
+  // پایه‌ی کارت شیشه‌ای؛ در تم روشن سایه‌ی ملایم هم می‌گیرد، در تیره نه.
+  const glassBase: ViewStyle = {
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: colors.radius,
+    padding: 16,
+    ...(isDark
+      ? {}
+      : {
+          shadowColor: '#1E1B4B',
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 3,
+        }),
+  };
+
   return StyleSheet.create({
-    image: {
-      width: '100%',
-      aspectRatio: 16 / 10,
-      maxHeight: 340,
+    // هیرو: عکسِ تمام‌عرض با گرادیانِ تیره و کلمه روی آن (مثل موکاپ B)
+    hero: {
+      height: 280,
       borderRadius: colors.radius,
+      overflow: 'hidden',
       backgroundColor: colors.soft,
     },
-    headRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14, flexWrap: 'wrap' },
+    heroImage: { ...StyleSheet.absoluteFill },
+    heroGradient: { ...StyleSheet.absoluteFill },
+    heroText: {
+      position: 'absolute',
+      left: 18,
+      right: 18,
+      bottom: 14,
+      direction: 'ltr',
+      alignItems: 'flex-start',
+    },
+    heroIpa: { fontSize: 13, color: '#C9C2E8', writingDirection: 'ltr' },
+    heroWord: { fontSize: 40, fontWeight: '900', color: '#FFFFFF', writingDirection: 'ltr', lineHeight: 46 },
+    heroArticle: { color: '#B9A7FF' },
+    // سرخطِ ساده وقتی مدخل عکس ندارد — بدون فاصله‌ی خالی
+    headRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 2, flexWrap: 'wrap' },
     word: { fontSize: 30, fontWeight: '800', color: colors.ink, writingDirection: 'ltr' },
-    article: { fontSize: 30, fontWeight: '800', color: colors.primaryDeep, writingDirection: 'ltr' },
     nounFormRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
     articleSmall: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep, writingDirection: 'ltr' },
     nounFormPersian: { fontSize: 16, fontWeight: '700', color: colors.primaryDeep, marginTop: 4 },
     ipa: { fontSize: 15, color: colors.secondary, writingDirection: 'ltr' },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    // کارت شیشه‌ایِ اصلی (چیپ‌ها + معنی فارسی)
+    glass: { ...glassBase, marginTop: 14 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
-      backgroundColor: colors.chip,
-      color: colors.primaryDeep,
+      backgroundColor: colors.chipTint,
+      color: colors.chipTintText,
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: 999,
       fontSize: 13,
       overflow: 'hidden',
     },
+    chipGreen: { backgroundColor: colors.chipGreen, color: colors.chipGreenText },
     chipLtr: { writingDirection: 'ltr' },
     chipActive: { backgroundColor: colors.primary, color: '#fff' },
-    persian: { fontSize: 22, fontWeight: '700', color: colors.primaryDeep, marginTop: 12 },
-    section: { marginTop: 18 },
-    sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: 6 },
+    persian: { fontSize: 26, fontWeight: '800', color: colors.ink, marginTop: 12 },
+    section: { ...glassBase, marginTop: 14 },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep, marginBottom: 6 },
     subHeader: { fontSize: 13, fontWeight: '700', color: colors.secondary, marginTop: 6, marginBottom: 2 },
     toppingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
     toppingText: { fontSize: 13, color: colors.secondary },
     line: { fontSize: 15, lineHeight: 24, color: colors.ink },
-    ltr: { writingDirection: 'ltr', textAlign: 'left' },
-    addBox: {
-      marginTop: 22,
-      backgroundColor: colors.soft,
-      borderRadius: colors.radius,
-      padding: 16,
-    },
-    addTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, marginBottom: 4 },
+    addBox: { ...glassBase, marginTop: 14 },
+    addTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, marginBottom: 8 },
     addBtn: {
       backgroundColor: colors.primary,
       borderRadius: 14,
