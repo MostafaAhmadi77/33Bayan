@@ -50,10 +50,16 @@ export function EntryView({
   entry,
   onAdd,
   onLookupWord,
+  loadingFull,
+  onRetry,
 }: {
   entry: Entry;
   onAdd?: (baseDays: 1 | 3 | 7) => Promise<void>;
   onLookupWord?: (word: string) => void;
+  /** جست‌وجوی سرور برای تکمیل مدخل موقت هنوز در جریان است */
+  loadingFull?: boolean;
+  /** تلاش دوباره برای آوردن معنی کاملِ مدخل موقت */
+  onRetry?: () => void;
 }) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -133,6 +139,7 @@ export function EntryView({
       ) : null}
 
       <View style={styles.headRow}>
+        {entry.article ? <Text style={styles.article}>{entry.article}</Text> : null}
         <Text style={styles.word} selectable>
           {entry.speak}
         </Text>
@@ -147,9 +154,37 @@ export function EntryView({
 
       {entry.persian ? <Text style={styles.persian}>{entry.persian}</Text> : null}
 
+      {entry.nounForm ? (
+        <Section title="📎 به‌عنوان اسم" styles={styles}>
+          <View style={styles.nounFormRow}>
+            {entry.nounForm.article ? (
+              <Text style={styles.articleSmall}>{entry.nounForm.article}</Text>
+            ) : null}
+            <TappableSentence text={entry.nounForm.word} onWord={openWord} style={styles.line} bullet={false} />
+          </View>
+          {entry.nounForm.persian ? (
+            <Text style={styles.nounFormPersian}>{entry.nounForm.persian}</Text>
+          ) : null}
+        </Section>
+      ) : null}
+
       <View style={{ marginTop: 10 }}>
         <SpeakButtons text={entry.speak} />
       </View>
+
+      {/* مدخل موقتِ محلی: یا معنی کامل در راه است، یا نرسیده و تلاش دوباره می‌خواهد.
+          برای مدخل واقعیِ سرور هیچ‌کدام از این دو ردیف نشان داده نمی‌شود. */}
+      {entry.local && loadingFull ? (
+        <View style={styles.toppingRow}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.toppingText}>⏳ در حال آوردن معنی کامل…</Text>
+        </View>
+      ) : null}
+      {entry.local && !loadingFull && onRetry ? (
+        <Pressable onPress={onRetry} style={styles.toppingRow}>
+          <Text style={styles.toppingText}>⚠️ معنی کامل نرسید — برای تلاش دوباره بزن</Text>
+        </Pressable>
+      ) : null}
 
       {entry.definitions.length ? (
         <Section title="📖 معنی‌ها (آلمانی)" styles={styles}>
@@ -292,6 +327,10 @@ function makeStyles(colors: ThemeColors) {
     },
     headRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14, flexWrap: 'wrap' },
     word: { fontSize: 30, fontWeight: '800', color: colors.ink, writingDirection: 'ltr' },
+    article: { fontSize: 30, fontWeight: '800', color: colors.primaryDeep, writingDirection: 'ltr' },
+    nounFormRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    articleSmall: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep, writingDirection: 'ltr' },
+    nounFormPersian: { fontSize: 16, fontWeight: '700', color: colors.primaryDeep, marginTop: 4 },
     ipa: { fontSize: 15, color: colors.secondary, writingDirection: 'ltr' },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
     chip: {
