@@ -34,13 +34,19 @@ type ThemeColors = ReturnType<typeof useAppTheme>['colors'];
 
 const hasPersian = (s: string) => /[\u0600-\u06FF]/.test(s);
 
+/** کاف و یه‌ی عربی را به شکل فارسی تبدیل می‌کند تا «کتاب» و «كتاب» یکی شوند */
+function normalizeFa(s: string): string {
+  return s.replace(/[\u0643]/g, '\u06a9').replace(/[\u064a]/g, '\u06cc');
+}
+
 /** اجتماع معنی‌های فارسی محلی و سرور: هر دو را روی «،» می‌شکند،
- *  تکراری‌ها را حذف می‌کند (ترتیب حفظ می‌شود، محلی اول) و با «، » می‌چسباند. */
+ *  تکراری‌ها را حذف می‌کند (ترتیب حفظ می‌شود، محلی اول) و با «، » می‌چسباند.
+ *  پیش از شکستن، کاف/یه‌ی عربی نرمال می‌شود تا صورت‌های هم‌معنی تکراری نشوند. */
 function unionPersian(local: string | null, server: string | null): string | null {
   const items: string[] = [];
-  for (const s of [local, server]) {
-    if (!s) continue;
-    for (const part of s.split('،')) {
+  for (const raw of [local, server]) {
+    if (!raw) continue;
+    for (const part of normalizeFa(raw).split('،')) {
       const t = part.trim();
       if (t && !items.includes(t)) items.push(t);
     }
@@ -59,6 +65,8 @@ export default function ExploreScreen() {
   const [equivalents, setEquivalents] = useState<Equivalent[]>([]);
   const [selected, setSelected] = useState<Entry | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
+  // جست‌وجوی سرور برای تکمیل مدخل موقتِ محلی هنوز در جریان است
+  const [loadingFull, setLoadingFull] = useState(false);
 
   // شناسه‌ی یکنواختِ درخواست‌ها: فقط نتیجه‌ی آخرین جست‌وجو اعمال می‌شود.
   // هر فراخوانی search در ابتدا آن را زیاد می‌کند و بعد از هر await بررسی می‌کند
@@ -95,6 +103,7 @@ export default function ExploreScreen() {
       setSelected(null);
       setEntry(null);
       setEquivalents([]);
+      setLoadingFull(false);
 
       if (direction === 'de') {
         const local = lookupLocal(q);
@@ -123,6 +132,7 @@ export default function ExploreScreen() {
           await pushRecent(localEntry.word);
           await setLastWord(localEntry.word);
           if (seq !== searchSeq.current) return;
+          setLoadingFull(true);
           try {
             const r = await lookupGerman(q, true);
             if (seq !== searchSeq.current) return;
@@ -138,7 +148,9 @@ export default function ExploreScreen() {
               });
             }
           } catch {
-            // سرور نرسید؛ نتیجه‌ی محلی سر جایش می‌ماند
+            // سرور نرسید؛ نتیجه‌ی محلی سر جایش می‌ماند و دکمه‌ی تلاش دوباره می‌آید
+          } finally {
+            if (seq === searchSeq.current) setLoadingFull(false);
           }
           if (seq === searchSeq.current) reloadRecent();
           return;
@@ -319,7 +331,13 @@ export default function ExploreScreen() {
       {/* نتیجه‌ی آلمانی → فارسی */}
       {status === 'result' && dir === 'de' && entry ? (
         <View style={styles.card}>
-          <EntryView entry={entry} onAdd={makeOnAdd(entry)} onLookupWord={(w) => search(w, 'de')} />
+          <EntryView
+            entry={entry}
+            onAdd={makeOnAdd(entry)}
+            onLookupWord={(w) => search(w, 'de')}
+            loadingFull={loadingFull}
+            onRetry={() => search(searched, dir)}
+          />
         </View>
       ) : null}
 
