@@ -95,6 +95,14 @@ export type ThemeColors = {
   background: string;
   surface: string;
   card: string;
+  /** کارت شیشه‌ای (روشن: سفید با سایه؛ تیره: سفیدِ شفاف) */
+  glass: string;
+  glassBorder: string;
+  /** چیپِ بنفشِ کم‌رنگ داخل کارت شیشه‌ای + چیپِ سبزِ جمع */
+  chipTint: string;
+  chipTintText: string;
+  chipGreen: string;
+  chipGreenText: string;
 };
 
 export const LightBrand: ThemeColors = {
@@ -102,6 +110,12 @@ export const LightBrand: ThemeColors = {
   background: '#FFFFFF',
   surface: '#FFFFFF',
   card: '#FFFFFF',
+  glass: '#FFFFFF',
+  glassBorder: '#ECEAF6',
+  chipTint: '#EFEAFF',
+  chipTintText: '#6A4DF0',
+  chipGreen: '#E3F8EE',
+  chipGreenText: '#1E7A4C',
 };
 
 export const DarkBrand: ThemeColors = {
@@ -119,4 +133,10 @@ export const DarkBrand: ThemeColors = {
   background: '#12121C',
   surface: '#1C1C2A',
   card: '#1E1E2E',
+  glass: 'rgba(255,255,255,0.06)',
+  glassBorder: 'rgba(255,255,255,0.10)',
+  chipTint: 'rgba(124,108,255,0.18)',
+  chipTintText: '#C9BCFF',
+  chipGreen: 'rgba(64,200,150,0.16)',
+  chipGreenText: '#8FE8C4',
 };
