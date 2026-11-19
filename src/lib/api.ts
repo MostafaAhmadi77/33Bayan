@@ -22,6 +22,8 @@ export type Entry = {
   speak: string;
   /** مدخل موقتِ ساخته‌شده از دیکشنری محلی، پیش از رسیدن داده‌ی سرور */
   local?: boolean;
+  /** شکل اسمیِ فعل وقتی به‌عنوان اسم هم به کار می‌رود (مثلاً essen ← das Essen) */
+  nounForm?: { word: string; article: string | null; persian: string | null } | null;
 };
 
 export type CardEntry = {
