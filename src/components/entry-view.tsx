@@ -3,6 +3,7 @@
 // + دکمه‌ی افزودن به لایتنر — طراحی «شیشه تیره» (v1.5.0)
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
@@ -195,6 +196,21 @@ export function EntryView({
             <Text style={styles.nounFormPersian}>{entry.nounForm.persian}</Text>
           ) : null}
         </Section>
+      ) : null}
+
+      {/* فقط برای فعل‌ها: رفتن به صفحه‌ی صرف فعل */}
+      {entry.type === 'Verb' ? (
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/conjugation',
+              params: { word: entry.word, persian: entry.persian ?? '', ipa: entry.ipa ?? '' },
+            })
+          }
+          style={styles.conjRow}>
+          <Text style={styles.conjTitle}>📝 صرف فعل</Text>
+          <Text style={styles.conjChevron}>‹</Text>
+        </Pressable>
       ) : null}
 
       <View style={{ marginTop: 10 }}>
@@ -394,6 +410,16 @@ function makeStyles(colors: ThemeColors, isDark: boolean) {
     ipa: { fontSize: 15, color: colors.secondary, writingDirection: 'ltr' },
     // کارت شیشه‌ایِ اصلی (چیپ‌ها + معنی فارسی)
     glass: { ...glassBase, marginTop: 14 },
+    // ردیف رفتن به صفحه‌ی صرف فعل (فقط فعل‌ها)
+    conjRow: {
+      ...glassBase,
+      marginTop: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    conjTitle: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep },
+    conjChevron: { fontSize: 20, fontWeight: '700', color: colors.secondary },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
       backgroundColor: colors.chipTint,
