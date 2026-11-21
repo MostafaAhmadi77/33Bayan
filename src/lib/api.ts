@@ -1,5 +1,8 @@
 // کلاینت API اپ — بک‌اند همان پروژه‌ی ربات بله روی Vercel است (api/app.js)
+import { normalizeConjugation, type Conjugation } from './conjugation-format';
 import { getUid } from './storage';
+
+export type { Conjugation, ConjugationSections } from './conjugation-format';
 
 export const BASE_URL = 'https://bale-german-dictionary-bot.vercel.app';
 
@@ -75,6 +78,24 @@ export async function lookupPersian(q: string, fast = true) {
 }
 
 export type LevelExample = { de: string; fa: string };
+
+/** صرف کامل یک فعل (از صفحه‌ی Flexion ویکی‌واژه در سرور).
+ *  روی هر خطایی {ok:false, conjugation:null} برمی‌گرداند تا صفحه خراب نشود. */
+export async function getConjugation(
+  word: string,
+): Promise<{ ok: boolean; conjugation: Conjugation | null }> {
+  try {
+    const r = (await call(`/api/app?action=conjugation&word=${encodeURIComponent(word)}`)) as {
+      ok: boolean;
+      conjugation?: unknown;
+    };
+    if (!r.ok) return { ok: false, conjugation: null };
+    const c = normalizeConjugation(r.conjugation);
+    return c ? { ok: true, conjugation: c } : { ok: false, conjugation: null };
+  } catch {
+    return { ok: false, conjugation: null };
+  }
+}
 
 /** مثال‌های سطح‌بندی‌شده برای یک کلمه (ساخته‌ی Gemini در سرور).
  *  روی هر خطایی {ok:false, examples:[]} برمی‌گرداند تا صفحه خراب نشود. */
