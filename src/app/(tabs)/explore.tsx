@@ -23,7 +23,7 @@ import {
   type Entry,
 } from '@/lib/api';
 import { clearRecent, getRecent, logActivity, pushRecent, setLastWord } from '@/lib/storage';
-import { lookupLocal, lookupLocalFa } from '@/lib/local-dict';
+import { lookupLocal, lookupLocalFa, suggestGerman, suggestPersian } from '@/lib/local-dict';
 import { useAppTheme } from '@/lib/theme-context';
 
 type Dir = 'de' | 'fa';
@@ -67,6 +67,8 @@ export default function ExploreScreen() {
   const [recent, setRecent] = useState<string[]>([]);
   // جست‌وجوی سرور برای تکمیل مدخل موقتِ محلی هنوز در جریان است
   const [loadingFull, setLoadingFull] = useState(false);
+  // پیشنهاد کلمه: با هر کلید روشن می‌شود؛ با لمس پیشنهاد یا اجرای جست‌وجو خاموش
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // شناسه‌ی یکنواختِ درخواست‌ها: فقط نتیجه‌ی آخرین جست‌وجو اعمال می‌شود.
   // هر فراخوانی search در ابتدا آن را زیاد می‌کند و بعد از هر await بررسی می‌کند
@@ -233,6 +235,28 @@ export default function ExploreScreen() {
 
   const submit = () => search(query, dir);
 
+  // تایپ: هر کلید پیشنهادها را روشن می‌کند (از ۲ حرف به بالا)
+  const handleChangeText = (t: string) => {
+    setQuery(t);
+    setShowSuggestions(t.trim().length >= 2);
+  };
+
+  // پیشنهادهای محلیِ هم‌زمان (بدون شبکه): فقط تا وقتی کاربر دارد تایپ می‌کند
+  // و جست‌وجو برای همین پرس‌وجو اجرا نشده است.
+  const suggestionList = useMemo(() => {
+    const q = query.trim();
+    if (!showSuggestions || q.length < 2 || q === searched) return null;
+    return dir === 'de'
+      ? { kind: 'de' as const, items: suggestGerman(q) }
+      : { kind: 'fa' as const, items: suggestPersian(q) };
+  }, [query, dir, showSuggestions, searched]);
+
+  // لمس پیشنهاد: لیست مخفی می‌شود و همان جست‌وجوی معمولی اجرا می‌شود
+  const tapSuggestion = (word: string, direction: Dir) => {
+    setShowSuggestions(false);
+    void search(word, direction);
+  };
+
   const tapRecent = (word: string) => {
     search(word, hasPersian(word) ? 'fa' : 'de');
   };
@@ -268,7 +292,7 @@ export default function ExploreScreen() {
       <View style={styles.searchRow}>
         <TextInput
           value={query}
-          onChangeText={setQuery}
+          onChangeText={handleChangeText}
           onSubmitEditing={submit}
           placeholder={
             dir === 'de' ? 'یه کلمه‌ی آلمانی بنویس…' : 'یه کلمه‌ی فارسی بنویس…'
@@ -283,6 +307,38 @@ export default function ExploreScreen() {
           <Text style={styles.searchBtnText}>جست‌وجو</Text>
         </Pressable>
       </View>
+
+      {/* پیشنهاد کلمه: از ۲ حرف به بالا، تا وقتی کاربر دارد تایپ می‌کند */}
+      {suggestionList && suggestionList.items.length > 0 ? (
+        <View style={styles.suggestBox}>
+          {suggestionList.kind === 'de'
+            ? suggestionList.items.map((s) => (
+                <Pressable
+                  key={s.word}
+                  onPress={() => tapSuggestion(s.word, 'de')}
+                  style={styles.suggestRow}>
+                  <Text style={styles.suggestDe}>
+                    {s.article ? `${s.article} ` : ''}
+                    {s.word}
+                  </Text>
+                  <Text style={styles.suggestFa} numberOfLines={1}>
+                    {s.persian}
+                  </Text>
+                </Pressable>
+              ))
+            : suggestionList.items.map((s) => (
+                <Pressable
+                  key={s.fa}
+                  onPress={() => tapSuggestion(s.fa, 'fa')}
+                  style={styles.suggestRow}>
+                  <Text style={styles.suggestFaMain}>{s.fa}</Text>
+                  <Text style={styles.suggestDeSub} numberOfLines={1}>
+                    {s.de.join('، ')}
+                  </Text>
+                </Pressable>
+              ))}
+        </View>
+      ) : null}
 
       {/* جست‌وجوهای اخیر */}
       {recent.length > 0 && status !== 'loading' ? (
@@ -417,6 +473,41 @@ function makeStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     searchBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    suggestBox: {
+      marginTop: 10,
+      backgroundColor: colors.glass,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      borderRadius: colors.radius,
+      overflow: 'hidden',
+    },
+    suggestRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 11,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.glassBorder,
+    },
+    suggestDe: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+      writingDirection: 'ltr',
+      textAlign: 'left',
+      flexShrink: 0,
+    },
+    suggestFa: { fontSize: 13, color: colors.secondary, flex: 1, textAlign: 'right' },
+    suggestFaMain: { fontSize: 16, fontWeight: '700', color: colors.ink, flexShrink: 0 },
+    suggestDeSub: {
+      fontSize: 13,
+      color: colors.secondary,
+      flex: 1,
+      textAlign: 'left',
+      writingDirection: 'ltr',
+    },
     recentBox: { marginTop: 18 },
     recentHeader: {
       flexDirection: 'row',
