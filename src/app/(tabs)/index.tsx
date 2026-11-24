@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
+import { useLayoutSize } from '@/hooks/use-layout';
 import { leitnerDue, leitnerList } from '@/lib/api';
 import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { dayKey, getActivity, getGoal, getLastWord, streakOf, type ActivityMap } from '@/lib/storage';
@@ -29,6 +30,7 @@ const TILES: { emoji: string; label: string; href: '/explore' | '/practice' | '/
 export default function HomeScreen() {
   const { colors, isDark } = useAppTheme();
   const styles = makeStyles(colors, isDark);
+  const size = useLayoutSize();
   const [data, setData] = useState<HomeData>(EMPTY);
 
   useFocusEffect(
@@ -117,7 +119,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>تمرین سریع</Text>
         <View style={styles.grid}>
           {TILES.map((t) => (
-            <Pressable key={t.label} style={styles.tile} onPress={() => router.push(t.href)}>
+            <Pressable key={t.label} style={[styles.tile, size !== 'compact' && { width: '23%' }]} onPress={() => router.push(t.href)}>
               <Text style={styles.tileEmoji}>{t.emoji}</Text>
               <Text style={styles.tileLabel}>{t.label}</Text>
             </Pressable>

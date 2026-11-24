@@ -1,8 +1,10 @@
 // نسخه‌ی وب نوار تب: کپی ظاهری NativeTabs اندروید (نوار پایینِ متریال ۳)
-// تا رابط کاربری وب دقیقاً مثل اپ اندروید باشد.
+// تا رابط کاربری وب دقیقاً مثل اپ اندروید باشد. روی صفحه‌های پهن (≥ 840px)
+// مثل اپ‌های اندروید روی تبلت، نوار به «ریل ناوبری» کنار صفحه تبدیل می‌شود.
 import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps } from 'expo-router/ui';
 import { Image, Pressable, Text, View, StyleSheet, type ImageSourcePropType } from 'react-native';
 
+import { useLayoutSize } from '@/hooks/use-layout';
 import { useAppTheme } from '@/lib/theme-context';
 
 const ICONS: Record<string, ImageSourcePropType> = {
@@ -15,11 +17,12 @@ const ICONS: Record<string, ImageSourcePropType> = {
 
 export default function AppTabs() {
   const { colors } = useAppTheme();
+  const rail = useLayoutSize() !== 'compact';
   return (
-    <Tabs style={{ flex: 1, backgroundColor: colors.background }}>
-      <TabSlot style={{ flex: 1 }} />
+    <Tabs style={{ flex: 1, flexDirection: rail ? 'row' : 'column', backgroundColor: colors.background }}>
+      {!rail && <TabSlot style={{ flex: 1 }} />}
       <TabList asChild>
-        <BottomBar>
+        <BottomBar rail={rail}>
           <TabTrigger name="index" href="/" asChild>
             <TabButton icon="index">خانه</TabButton>
           </TabTrigger>
@@ -37,6 +40,7 @@ export default function AppTabs() {
           </TabTrigger>
         </BottomBar>
       </TabList>
+      {rail && <TabSlot style={{ flex: 1 }} />}
     </Tabs>
   );
 }
@@ -48,9 +52,10 @@ export function TabButton({
   ...props
 }: TabTriggerSlotProps & { icon: keyof typeof ICONS }) {
   const { colors } = useAppTheme();
+  const rail = useLayoutSize() !== 'compact';
   const tint = isFocused ? colors.ink : colors.secondary;
   return (
-    <Pressable {...(props as any)} style={styles.item}>
+    <Pressable {...(props as any)} style={[styles.item, rail && styles.railItem]}>
       <View style={[styles.indicator, { backgroundColor: isFocused ? colors.chip : 'transparent' }]}>
         <Image source={ICONS[icon]} style={[styles.icon, { tintColor: tint }]} />
       </View>
@@ -59,9 +64,17 @@ export function TabButton({
   );
 }
 
-export function BottomBar(props: TabListProps) {
+export function BottomBar({ rail, ...props }: TabListProps & { rail?: boolean }) {
   const { colors } = useAppTheme();
-  return <View {...props} style={[styles.bar, { backgroundColor: colors.background }]} />;
+  return (
+    <View
+      {...props}
+      style={[
+        rail ? styles.rail : styles.bar,
+        { backgroundColor: colors.background, borderColor: colors.border },
+      ]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
@@ -72,7 +85,15 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 8,
   },
-  item: { flex: 1, alignItems: 'center', gap: 4, cursor: 'pointer' } as any,
+  rail: {
+    width: 88,
+    paddingTop: 44,
+    gap: 12,
+    alignItems: 'stretch',
+    borderLeftWidth: 1,
+  },
+  railItem: { flexGrow: 0, flexBasis: 'auto', paddingVertical: 4 },
+  item: { flexGrow: 1, flexBasis: 0, alignItems: 'center', gap: 4, cursor: 'pointer' } as any,
   indicator: {
     width: 64,
     height: 32,
