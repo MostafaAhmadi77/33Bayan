@@ -1,0 +1,1 @@
+{"buildCommand":"npx expo export -p web && node scripts/web-postbuild.js","outputDirectory":"dist","cleanUrls":true}
