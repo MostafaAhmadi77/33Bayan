@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { ScrollView, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useLayoutSize } from '@/hooks/use-layout';
 import { useAppTheme } from '@/lib/theme-context';
 
 export function ScreenScroll({
@@ -12,6 +13,8 @@ export function ScreenScroll({
   ...props
 }: ScrollViewProps & { children: ReactNode }) {
   const { colors } = useAppTheme();
+  const size = useLayoutSize();
+  const maxWidth = size === 'expanded' ? 1120 : size === 'medium' ? 920 : 760;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
       <ScrollView
@@ -21,7 +24,8 @@ export function ScreenScroll({
             padding: 20,
             paddingBottom: 28,
             width: '100%',
-            maxWidth: 760,
+            maxWidth,
+            paddingHorizontal: size === 'compact' ? 20 : 32,
             alignSelf: 'center',
             flexGrow: 1,
           },

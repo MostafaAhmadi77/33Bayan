@@ -1,111 +1,106 @@
-import {
-  Tabs,
-  TabList,
-  TabTrigger,
-  TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
-} from 'expo-router/ui';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+// نسخه‌ی وب نوار تب: کپی ظاهری NativeTabs اندروید (نوار پایینِ متریال ۳)
+// تا رابط کاربری وب دقیقاً مثل اپ اندروید باشد. روی صفحه‌های پهن (≥ 840px)
+// مثل اپ‌های اندروید روی تبلت، نوار به «ریل ناوبری» کنار صفحه تبدیل می‌شود.
+import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps } from 'expo-router/ui';
+import { Image, Pressable, Text, View, StyleSheet, type ImageSourcePropType } from 'react-native';
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useLayoutSize } from '@/hooks/use-layout';
 import { useAppTheme } from '@/lib/theme-context';
 
+const ICONS: Record<string, ImageSourcePropType> = {
+  index: require('@/assets/images/tabIcons/home.png'),
+  explore: require('@/assets/images/tabIcons/explore.png'),
+  practice: require('@/assets/images/tabIcons/practice.png'),
+  progress: require('@/assets/images/tabIcons/progress.png'),
+  profile: require('@/assets/images/tabIcons/profile.png'),
+};
+
 export default function AppTabs() {
+  const { colors } = useAppTheme();
+  const rail = useLayoutSize() !== 'compact';
   return (
-    <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+    <Tabs style={{ flex: 1, flexDirection: rail ? 'row' : 'column', backgroundColor: colors.background }}>
+      {!rail && <TabSlot style={{ flex: 1 }} />}
       <TabList asChild>
-        <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
-            <TabButton>خانه</TabButton>
+        <BottomBar rail={rail}>
+          <TabTrigger name="index" href="/" asChild>
+            <TabButton icon="index">خانه</TabButton>
           </TabTrigger>
           <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>جست‌وجو</TabButton>
+            <TabButton icon="explore">جست‌وجو</TabButton>
           </TabTrigger>
           <TabTrigger name="practice" href="/practice" asChild>
-            <TabButton>تمرین</TabButton>
+            <TabButton icon="practice">تمرین</TabButton>
           </TabTrigger>
           <TabTrigger name="progress" href="/progress" asChild>
-            <TabButton>پیشرفت</TabButton>
+            <TabButton icon="progress">پیشرفت</TabButton>
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton>پروفایل</TabButton>
+            <TabButton icon="profile">پروفایل</TabButton>
           </TabTrigger>
-        </CustomTabList>
+        </BottomBar>
       </TabList>
+      {rail && <TabSlot style={{ flex: 1 }} />}
     </Tabs>
   );
 }
 
-export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+export function TabButton({
+  children,
+  isFocused,
+  icon,
+  ...props
+}: TabTriggerSlotProps & { icon: keyof typeof ICONS }) {
   const { colors } = useAppTheme();
-  // پراپ‌های اسلات روتِر با تایپ ref پرس‌ابل در React 19 جور نیست؛ در زمان اجرا درست کار می‌کند
+  const rail = useLayoutSize() !== 'compact';
+  const tint = isFocused ? colors.ink : colors.secondary;
   return (
-    <Pressable {...(props as any)} style={({ pressed }) => pressed && styles.pressed}>
-      <View
-        style={[
-          styles.tabButtonView,
-          { backgroundColor: isFocused ? colors.chip : 'transparent' },
-        ]}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: isFocused ? colors.ink : colors.secondary }}>
-          {children}
-        </Text>
+    <Pressable {...(props as any)} style={[styles.item, rail && styles.railItem]}>
+      <View style={[styles.indicator, { backgroundColor: isFocused ? colors.chip : 'transparent' }]}>
+        <Image source={ICONS[icon]} style={[styles.icon, { tintColor: tint }]} />
       </View>
+      <Text style={[styles.label, { color: tint, fontWeight: isFocused ? '700' : '500' }]}>{children}</Text>
     </Pressable>
   );
 }
 
-export function CustomTabList(props: TabListProps) {
+export function BottomBar({ rail, ...props }: TabListProps & { rail?: boolean }) {
   const { colors } = useAppTheme();
   return (
-    <View {...props} style={styles.tabListContainer}>
-      <View style={[styles.innerContainer, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.brandText, { color: colors.ink, fontSize: 13, fontWeight: '700' }]}>
-          33Bayan
-        </Text>
-
-        {props.children}
-      </View>
-    </View>
+    <View
+      {...props}
+      style={[
+        rail ? styles.rail : styles.bar,
+        { backgroundColor: colors.background, borderColor: colors.border },
+      ]}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  tabListContainer: {
-    position: 'absolute',
-    width: '100%',
-    padding: Spacing.three,
+  bar: {
+    flexDirection: 'row',
+    height: 80,
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 8,
+  },
+  rail: {
+    width: 88,
+    paddingTop: 44,
+    gap: 12,
+    alignItems: 'stretch',
+    borderLeftWidth: 1,
+  },
+  railItem: { flexGrow: 0, flexBasis: 'auto', paddingVertical: 4 },
+  item: { flexGrow: 1, flexBasis: 0, alignItems: 'center', gap: 4, cursor: 'pointer' } as any,
+  indicator: {
+    width: 64,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
   },
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexGrow: 1,
-    gap: Spacing.two,
-    maxWidth: MaxContentWidth,
-  },
-  brandText: {
-    marginRight: 'auto',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
-  },
+  icon: { width: 24, height: 24 },
+  label: { fontSize: 12, letterSpacing: 0.5 },
 });
