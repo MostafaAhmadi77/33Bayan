@@ -146,6 +146,10 @@ export function EntryView({
   };
 
   const { article: heroArticle, rest: heroRest } = splitHeadword(entry);
+  const nounDefinitions = entry.nounForm?.definitions ?? [];
+  const nounExamples = entry.nounForm?.examples ?? [];
+  const alsoTypeLabel =
+    entry.also?.type === 'Substantiv' ? 'اسم' : entry.also?.type === 'Verb' ? 'فعل' : entry.also?.type;
 
   return (
     <View>
@@ -182,6 +186,26 @@ export function EntryView({
         </View>
 
         {entry.persian ? <Text style={styles.persian}>{entry.persian}</Text> : null}
+
+        {entry.formOf ? (
+          <Text style={styles.formOfNote} selectable>
+            «{entry.formOf.form}» صورتِ صرف‌شده‌ی «{entry.formOf.base}» است — {entry.formOf.grammar}
+          </Text>
+        ) : null}
+
+        {entry.also ? (
+          <Text style={styles.formOfNote} selectable>
+            همچنین {alsoTypeLabel}: {entry.also.article ? `${entry.also.article} ` : ''}
+            {entry.also.word}
+            {entry.also.persian ? ` — ${entry.also.persian}` : ''}
+          </Text>
+        ) : null}
+
+        {entry.reflexive ? (
+          <View style={styles.reflexiveRow}>
+            <Text style={styles.chip}>فعل انعکاسی (sich)</Text>
+          </View>
+        ) : null}
       </View>
 
       {entry.nounForm ? (
@@ -194,6 +218,30 @@ export function EntryView({
           </View>
           {entry.nounForm.persian ? (
             <Text style={styles.nounFormPersian}>{entry.nounForm.persian}</Text>
+          ) : null}
+
+          {nounDefinitions.length ? (
+            <>
+              <Text style={styles.subHeader}>📖 معنی‌ها (آلمانی)</Text>
+              {nounDefinitions.map((d, i) => (
+                <TranslatableText
+                  key={`noun-def-${i}`}
+                  text={d}
+                  number={i + 1}
+                  onWord={openWord}
+                  style={styles.line}
+                />
+              ))}
+            </>
+          ) : null}
+
+          {nounExamples.length ? (
+            <>
+              <Text style={styles.subHeader}>💬 مثال‌ها</Text>
+              {nounExamples.map((x, i) => (
+                <TranslatableText key={`noun-ex-${i}`} text={x.de} onWord={openWord} style={styles.line} />
+              ))}
+            </>
           ) : null}
         </Section>
       ) : null}
@@ -434,6 +482,8 @@ function makeStyles(colors: ThemeColors, isDark: boolean) {
     chipLtr: { writingDirection: 'ltr' },
     chipActive: { backgroundColor: colors.primary, color: '#fff' },
     persian: { fontSize: 26, fontWeight: '800', color: colors.ink, marginTop: 12 },
+    formOfNote: { fontSize: 13, lineHeight: 20, color: colors.secondary, marginTop: 10 },
+    reflexiveRow: { flexDirection: 'row', marginTop: 10 },
     section: { ...glassBase, marginTop: 14 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep, marginBottom: 6 },
     subHeader: { fontSize: 13, fontWeight: '700', color: colors.secondary, marginTop: 6, marginBottom: 2 },
