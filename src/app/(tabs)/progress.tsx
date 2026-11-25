@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
+import { useLayoutSize } from '@/hooks/use-layout';
 import { leitnerList, type LeitnerCard } from '@/lib/api';
 import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { dayKey, getActivity, streakOf, type ActivityMap } from '@/lib/storage';
@@ -14,6 +15,7 @@ const faNum = (n: number) => n.toLocaleString('fa-IR');
 export default function ProgressScreen() {
   const { colors, isDark } = useAppTheme();
   const styles = makeStyles(colors, isDark);
+  const size = useLayoutSize();
   const [activity, setActivity] = useState<ActivityMap>({});
   const [cards, setCards] = useState<LeitnerCard[]>([]);
 
@@ -132,7 +134,7 @@ export default function ProgressScreen() {
       <Text style={styles.sectionTitle}>نشان‌ها</Text>
       <View style={styles.achGrid}>
         {achievements.map((a) => (
-          <View key={a.title} style={[styles.achCard, !a.unlocked && styles.achLocked]}>
+          <View key={a.title} style={[styles.achCard, size !== 'compact' && { width: '15%', flexGrow: 1 }, !a.unlocked && styles.achLocked]}>
             <Text style={[styles.achEmoji, !a.unlocked && { opacity: 0.3 }]}>{a.emoji}</Text>
             <Text style={[styles.achTitle, !a.unlocked && { color: colors.secondary }]}>{a.title}</Text>
             <Text style={styles.achState}>{a.unlocked ? 'باز شده ✅' : 'قفل 🔒'}</Text>
