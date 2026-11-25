@@ -25,8 +25,20 @@ export type Entry = {
   speak: string;
   /** مدخل موقتِ ساخته‌شده از دیکشنری محلی، پیش از رسیدن داده‌ی سرور */
   local?: boolean;
+  /** اگر جست‌وجو صورت صرف‌شده/تصریف‌شده بوده، شکل پایه و نقش دستوری آن */
+  formOf?: { form: string; base: string; grammar: string } | null;
+  /** فعل انعکاسی با sich، مثل sich fühlen */
+  reflexive?: boolean;
+  /** مدخل اصلیِ هم‌ریشه با حرف بزرگ، وقتی صورت کوچک به شکل پایه رسیده است */
+  also?: { word: string; type: string; article: string | null; persian: string } | null;
   /** شکل اسمیِ فعل وقتی به‌عنوان اسم هم به کار می‌رود (مثلاً essen ← das Essen) */
-  nounForm?: { word: string; article: string | null; persian: string | null } | null;
+  nounForm?: {
+    word: string;
+    article: string | null;
+    persian: string | null;
+    definitions?: string[];
+    examples?: { de: string }[];
+  } | null;
 };
 
 export type CardEntry = {

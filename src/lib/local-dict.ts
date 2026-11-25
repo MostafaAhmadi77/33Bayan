@@ -109,17 +109,20 @@ export type GermanSuggestion = {
 };
 
 /** پیشنهاد آلمانی→فارسی: کلمه‌هایی که با پیشوند شروع می‌شوند.
- *  «geh» → gehen، gehören… ؛ کمتر از ۲ حرف یا پیشوند ناموجود → [] */
+ *  «g» یا «geh» → gehen، gehören… ؛ پیشوند خالی یا ناموجود → [] */
 export function suggestGerman(prefix: string, limit = 8): GermanSuggestion[] {
   const p = prefix.trim().toLowerCase();
-  if (p.length < 2) return [];
+  if (p.length < 1) return [];
   const out: GermanSuggestion[] = [];
   for (const { key, lower } of getSortedKeys()) {
     if (out.length >= limit) break;
     if (!lower.startsWith(p)) continue;
     const v = DICT[key];
     if (!v?.fa) continue;
-    out.push({ word: key, persian: v.fa, type: v.t ?? null, article: v.a ?? null });
+    // نوع‌های «فرمی» ویکی‌واژه (صورت صرف‌شده/تصریف‌شده) برچسب مفیدی برای کاربر نیستند؛
+    // فقط نوع‌های واقعی کلمه (فعل، اسم، صفت…) نشان داده می‌شوند.
+    const type = v.t && !/^(Konjugierte|Deklinierte)/.test(v.t) ? v.t : null;
+    out.push({ word: key, persian: v.fa, type, article: v.a ?? null });
   }
   return out;
 }
@@ -138,7 +141,7 @@ function normalizeFaToken(s: string): string {
 export function suggestPersian(prefix: string, limit = 8): PersianSuggestion[] {
   if (!reverseIndex) reverseIndex = buildReverseIndex();
   const p = normalizeFaToken(prefix.trim());
-  if (p.length < 2) return [];
+  if (p.length < 1) return [];
   const matches: { fa: string; words: string[] }[] = [];
   for (const [tok, words] of reverseIndex) {
     if (normalizeFaToken(tok).startsWith(p)) {
