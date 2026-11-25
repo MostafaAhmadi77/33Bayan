@@ -67,7 +67,8 @@ export default function ExploreScreen() {
   const [recent, setRecent] = useState<string[]>([]);
   // جست‌وجوی سرور برای تکمیل مدخل موقتِ محلی هنوز در جریان است
   const [loadingFull, setLoadingFull] = useState(false);
-  // پیشنهاد کلمه: با هر کلید روشن می‌شود؛ با لمس پیشنهاد یا اجرای جست‌وجو خاموش
+  // پیشنهاد کلمه: با تایپ روشن می‌شود و با جست‌وجوی خودکار خاموش نمی‌شود؛
+  // فقط با لمس پیشنهاد، خالی شدن باکس یا جست‌وجوی صریح خاموش می‌شود.
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // شناسه‌ی یکنواختِ درخواست‌ها: فقط نتیجه‌ی آخرین جست‌وجو اعمال می‌شود.
@@ -233,23 +234,27 @@ export default function ExploreScreen() {
     return () => clearTimeout(t);
   }, [query, dir, searched, search]);
 
-  const submit = () => search(query, dir);
-
-  // تایپ: هر کلید پیشنهادها را روشن می‌کند (از ۲ حرف به بالا)
-  const handleChangeText = (t: string) => {
-    setQuery(t);
-    setShowSuggestions(t.trim().length >= 2);
+  const submit = () => {
+    setShowSuggestions(false);
+    void search(query, dir);
   };
 
-  // پیشنهادهای محلیِ هم‌زمان (بدون شبکه): فقط تا وقتی کاربر دارد تایپ می‌کند
-  // و جست‌وجو برای همین پرس‌وجو اجرا نشده است.
+  // تایپ: هر کلید پیشنهادها را روشن می‌کند (از ۱ حرف به بالا)
+  const handleChangeText = (t: string) => {
+    setQuery(t);
+    setShowSuggestions(t.trim().length >= 1);
+  };
+
+  // پیشنهادهای محلیِ هم‌زمان (بدون شبکه): تا وقتی باکس خالی نشده و کاربر
+  // پیشنهاد را انتخاب نکرده یا جست‌وجوی صریح نزده، می‌مانند؛ اجرای
+  // جست‌وجوی خودکار (searched) آن‌ها را مخفی نمی‌کند.
   const suggestionList = useMemo(() => {
     const q = query.trim();
-    if (!showSuggestions || q.length < 2 || q === searched) return null;
+    if (!showSuggestions || q.length < 1) return null;
     return dir === 'de'
       ? { kind: 'de' as const, items: suggestGerman(q) }
       : { kind: 'fa' as const, items: suggestPersian(q) };
-  }, [query, dir, showSuggestions, searched]);
+  }, [query, dir, showSuggestions]);
 
   // لمس پیشنهاد: لیست مخفی می‌شود و همان جست‌وجوی معمولی اجرا می‌شود
   const tapSuggestion = (word: string, direction: Dir) => {
@@ -308,7 +313,7 @@ export default function ExploreScreen() {
         </Pressable>
       </View>
 
-      {/* پیشنهاد کلمه: از ۲ حرف به بالا، تا وقتی کاربر دارد تایپ می‌کند */}
+      {/* پیشنهاد کلمه: از ۱ حرف به بالا؛ با جست‌وجوی خودکار هم می‌ماند */}
       {suggestionList && suggestionList.items.length > 0 ? (
         <View style={styles.suggestBox}>
           {suggestionList.kind === 'de'
@@ -317,10 +322,13 @@ export default function ExploreScreen() {
                   key={s.word}
                   onPress={() => tapSuggestion(s.word, 'de')}
                   style={styles.suggestRow}>
-                  <Text style={styles.suggestDe}>
-                    {s.article ? `${s.article} ` : ''}
-                    {s.word}
-                  </Text>
+                  <View style={styles.suggestWordWrap}>
+                    <Text style={styles.suggestDe}>
+                      {s.article ? `${s.article} ` : ''}
+                      {s.word}
+                    </Text>
+                    {s.type ? <Text style={styles.suggestTypeChip}>{s.type}</Text> : null}
+                  </View>
                   <Text style={styles.suggestFa} numberOfLines={1}>
                     {s.persian}
                   </Text>
@@ -491,6 +499,12 @@ function makeStyles(colors: ThemeColors) {
       borderBottomWidth: 1,
       borderBottomColor: colors.glassBorder,
     },
+    suggestWordWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexShrink: 0,
+    },
     suggestDe: {
       fontSize: 16,
       fontWeight: '700',
@@ -498,6 +512,16 @@ function makeStyles(colors: ThemeColors) {
       writingDirection: 'ltr',
       textAlign: 'left',
       flexShrink: 0,
+    },
+    suggestTypeChip: {
+      backgroundColor: colors.chipTint,
+      color: colors.chipTintText,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+      fontSize: 11,
+      overflow: 'hidden',
+      writingDirection: 'ltr',
     },
     suggestFa: { fontSize: 13, color: colors.secondary, flex: 1, textAlign: 'right' },
     suggestFaMain: { fontSize: 16, fontWeight: '700', color: colors.ink, flexShrink: 0 },
