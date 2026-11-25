@@ -87,16 +87,20 @@ export function EntryView({
   const [generated, setGenerated] = useState<LevelExample[]>([]);
   const [topping, setTopping] = useState(false);
 
-  // همه‌ی مثال‌های دیکشنری + DWDS، بدون تکرار
+  // همه‌ی مثال‌های دیکشنری + DWDS + Tatoeba، بدون تکرار.
+  // مثال‌های Tatoeba ترجمه‌ی فارسی آماده دارند.
   const pool = useMemo(() => {
     const seen = new Set<string>();
-    return [...entry.examples, ...entry.dwdsExamples]
-      .map((s) => s.trim())
-      .filter((s) => {
-        if (!s || seen.has(s)) return false;
-        seen.add(s);
-        return true;
-      });
+    const items: { de: string; fa?: string; tatoeba?: boolean }[] = [
+      ...entry.examples.map((de) => ({ de: de.trim() })),
+      ...entry.dwdsExamples.map((de) => ({ de: de.trim() })),
+      ...(entry.tatoebaExamples ?? []).map((x) => ({ de: x.de.trim(), fa: x.fa, tatoeba: true })),
+    ];
+    return items.filter((x) => {
+      if (!x.de || seen.has(x.de)) return false;
+      seen.add(x.de);
+      return true;
+    });
   }, [entry]);
 
   // مثال‌های دیکشنری وقتی گروه اصلی‌اند تا سقف تعداد خواسته‌شده نشان داده
@@ -181,6 +185,7 @@ export function EntryView({
       <View style={styles.glass}>
         <View style={styles.chips}>
           {entry.type ? <Text style={styles.chip}>{TYPE_FA[entry.type] || entry.type}</Text> : null}
+          {entry.cefr ? <Text style={styles.chip}>سطح {entry.cefr}</Text> : null}
           {entry.plural ? <Text style={[styles.chip, styles.chipGreen]}>جمع: {entry.pluralFull}</Text> : null}
           {entry.english ? <Text style={[styles.chip, styles.chipLtr]}>{entry.english}</Text> : null}
         </View>
@@ -313,8 +318,17 @@ export function EntryView({
             <>
               <Text style={styles.subHeader}>📚 از دیکشنری</Text>
               {dictShown.map((x, i) => (
-                <TranslatableText key={`pool-${i}`} text={x} onWord={openWord} style={styles.line} />
+                <TranslatableText
+                  key={`pool-${i}`}
+                  text={x.de}
+                  prefetchedPersian={x.fa}
+                  onWord={openWord}
+                  style={styles.line}
+                />
               ))}
+              {dictShown.some((x) => x.tatoeba) ? (
+                <Text style={styles.sourceNote}>مثال‌های واقعی از Tatoeba (CC BY)</Text>
+              ) : null}
             </>
           ) : null}
           {topping && generated.length + dictShown.length === 0 ? (
@@ -487,6 +501,7 @@ function makeStyles(colors: ThemeColors, isDark: boolean) {
     section: { ...glassBase, marginTop: 14 },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep, marginBottom: 6 },
     subHeader: { fontSize: 13, fontWeight: '700', color: colors.secondary, marginTop: 6, marginBottom: 2 },
+    sourceNote: { fontSize: 11, color: colors.secondary, marginTop: 4 },
     toppingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
     toppingText: { fontSize: 13, color: colors.secondary },
     line: { fontSize: 15, lineHeight: 24, color: colors.ink },
