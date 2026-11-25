@@ -23,6 +23,12 @@ export type Entry = {
   collocations: string[];
   imageUrl: string | null;
   speak: string;
+  /** سطح CEFR از فهرست‌های Goethe/DWDS (فقط A1 تا B1)، از دیکشنری محلی */
+  cefr?: string | null;
+  /** کلاس بسامد DWDS، از دیکشنری محلی */
+  frequency?: number | null;
+  /** مثال‌های واقعی آلمانی–فارسی از Tatoeba */
+  tatoebaExamples?: { de: string; fa: string }[];
   /** مدخل موقتِ ساخته‌شده از دیکشنری محلی، پیش از رسیدن داده‌ی سرور */
   local?: boolean;
   /** اگر جست‌وجو صورت صرف‌شده/تصریف‌شده بوده، شکل پایه و نقش دستوری آن */

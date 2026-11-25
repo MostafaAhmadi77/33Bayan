@@ -3,11 +3,24 @@
 //   {"Haus": {"fa": "خانه", "t": "Substantiv", "a": "das", "p": "Häuser"}, ...}
 // کلیدها سرنام آلمانی‌اند (اسم‌ها با حرف بزرگ)؛ فیلدها ممکن است نباشند.
 import dictData from '../../assets/data/de-fa-dict.json';
+import formsData from '../../assets/data/de-forms.json';
 
-type DictValue = { fa?: string; t?: string; a?: string; p?: string };
+type DictValue = {
+  fa?: string;
+  t?: string;
+  a?: string;
+  p?: string;
+  s?: string;
+  /** کلاس بسامد DWDS (عدد بزرگ‌تر = پرکاربردتر) */
+  f?: number;
+  /** سطح CEFR از فهرست‌های Goethe/DWDS: فقط A1 تا B1 */
+  c?: string;
+};
 type DictMap = Record<string, DictValue>;
 
 const DICT = dictData as DictMap;
+/** صورت‌های صرف‌شده/تصریف‌شده → شکل پایه (Kaikki/Wiktextract) */
+const FORMS = formsData as Record<string, string>;
 
 export type LocalEntry = {
   word: string;
@@ -15,6 +28,8 @@ export type LocalEntry = {
   type: string | null;
   article: string | null;
   plural: string | null;
+  cefr: string | null;
+  frequency: number | null;
 };
 
 /** شکل‌های قابل‌قبول پرس‌وجو: عین تایپ‌شده، حرف اول بزرگ، همه کوچک */
@@ -26,19 +41,32 @@ function normalizeForms(q: string): string[] {
   return [...new Set([t, cap, lower])];
 }
 
-/** جست‌وجوی محلی آلمانی→فارسی؛ اگر نبود null */
+function entryFrom(word: string, v: DictValue): LocalEntry {
+  return {
+    word,
+    fa: v.fa ?? '',
+    type: v.t ?? null,
+    article: v.a ?? null,
+    plural: v.p ?? null,
+    cefr: v.c ?? null,
+    frequency: v.f ?? null,
+  };
+}
+
+/** جست‌وجوی محلی آلمانی→فارسی؛ اگر نبود null.
+ *  صورت‌های صرف‌شده (ging، bekannte…) اول به شکل پایه می‌رسند تا معنی فوری
+ *  درست باشد؛ جزئیات دستوری صورت را سرور در formOf می‌آورد. */
 export function lookupLocal(q: string): LocalEntry | null {
-  for (const form of normalizeForms(q)) {
-    const v = DICT[form];
-    if (v && v.fa) {
-      return {
-        word: form,
-        fa: v.fa,
-        type: v.t ?? null,
-        article: v.a ?? null,
-        plural: v.p ?? null,
-      };
+  const forms = normalizeForms(q);
+  for (const form of forms) {
+    const lemma = FORMS[form];
+    if (lemma && lemma !== form && DICT[lemma]?.fa) {
+      return entryFrom(lemma, DICT[lemma]);
     }
+  }
+  for (const form of forms) {
+    const v = DICT[form];
+    if (v && v.fa) return entryFrom(form, v);
   }
   return null;
 }
@@ -87,18 +115,29 @@ export function lookupLocalFa(q: string): string[] {
 
 // ---- پیشنهاد کلمه (تکمیل خودکار) — هم‌زمان و بدون شبکه ----
 
-// کلیدهای دیکشنری با صورت کوچک‌شده‌شان، یک‌بار ساخته و مرتب می‌شوند:
-// اول کوتاه‌ترها، بعد الفبایی — تا «gehen» پیش از «Gehör» و «geht» بیاید.
-let sortedKeys: { key: string; lower: string }[] | null = null;
+// کلیدهای دیکشنری و صورت‌های صرف‌شده با صورت کوچک‌شده‌شان، یک‌بار ساخته می‌شوند.
+// رتبه‌بندی پیشنهادها: تطابق دقیق اول، بعد بسامد DWDS (پرکاربردترها جلوتر)،
+// بعد کوتاه‌ترها — تا «gehen» پیش از کلمه‌های کم‌کاربردتر بیاید و «ging»
+// هم به «gehen» برسد.
+let lemmaKeys: { key: string; lower: string }[] | null = null;
+let formKeys: { form: string; lower: string; lemma: string }[] | null = null;
 
-function getSortedKeys(): { key: string; lower: string }[] {
-  if (!sortedKeys) {
-    sortedKeys = Object.keys(DICT).map((key) => ({ key, lower: key.toLowerCase() }));
-    sortedKeys.sort(
-      (a, b) => a.key.length - b.key.length || a.key.localeCompare(b.key),
-    );
+function getLemmaKeys(): { key: string; lower: string }[] {
+  if (!lemmaKeys) {
+    lemmaKeys = Object.keys(DICT).map((key) => ({ key, lower: key.toLowerCase() }));
   }
-  return sortedKeys;
+  return lemmaKeys;
+}
+
+function getFormKeys(): { form: string; lower: string; lemma: string }[] {
+  if (!formKeys) {
+    formKeys = Object.entries(FORMS).map(([form, lemma]) => ({
+      form,
+      lower: form.toLowerCase(),
+      lemma,
+    }));
+  }
+  return formKeys;
 }
 
 export type GermanSuggestion = {
@@ -108,23 +147,41 @@ export type GermanSuggestion = {
   article: string | null;
 };
 
-/** پیشنهاد آلمانی→فارسی: کلمه‌هایی که با پیشوند شروع می‌شوند.
- *  «g» یا «geh» → gehen، gehören… ؛ پیشوند خالی یا ناموجود → [] */
+/** پیشنهاد آلمانی→فارسی: شکل‌های پایه‌ای که خودشان یا صورت صرف‌شده‌شان با
+ *  پیشوند شروع می‌شوند. «geh» → gehen؛ «ging» → gehen؛ پیشوند خالی → [] */
 export function suggestGerman(prefix: string, limit = 8): GermanSuggestion[] {
   const p = prefix.trim().toLowerCase();
   if (p.length < 1) return [];
-  const out: GermanSuggestion[] = [];
-  for (const { key, lower } of getSortedKeys()) {
-    if (out.length >= limit) break;
+  const best = new Map<string, number>();
+  const consider = (lemma: string, score: number) => {
+    const prev = best.get(lemma);
+    if (prev === undefined || score < prev) best.set(lemma, score);
+  };
+  for (const { key, lower } of getLemmaKeys()) {
     if (!lower.startsWith(p)) continue;
     const v = DICT[key];
     if (!v?.fa) continue;
-    // نوع‌های «فرمی» ویکی‌واژه (صورت صرف‌شده/تصریف‌شده) برچسب مفیدی برای کاربر نیستند؛
-    // فقط نوع‌های واقعی کلمه (فعل، اسم، صفت…) نشان داده می‌شوند.
-    const type = v.t && !/^(Konjugierte|Deklinierte)/.test(v.t) ? v.t : null;
-    out.push({ word: key, persian: v.fa, type, article: v.a ?? null });
+    // خودِ صورت‌های صرف‌شده پیشنهاد نمی‌شوند؛ شکل پایه‌شان از مسیر FORMS می‌آید.
+    if (FORMS[key] && FORMS[key] !== key) continue;
+    if (v.t && /^(Konjugierte|Deklinierte)/.test(v.t)) continue;
+    consider(key, (lower === p ? 0 : 1000) - (v.f ?? 0) * 20 + key.length);
   }
-  return out;
+  for (const { form, lower, lemma } of getFormKeys()) {
+    if (!lower.startsWith(p)) continue;
+    const v = DICT[lemma];
+    if (!v?.fa) continue;
+    consider(lemma, 500 + (lower === p ? 0 : 1000) - (v.f ?? 0) * 20 + lemma.length + form.length / 100);
+  }
+  return [...best.entries()]
+    .sort((a, b) => a[1] - b[1] || a[0].length - b[0].length || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([word]) => {
+      const v = DICT[word];
+      // نوع‌های «فرمی» ویکی‌واژه برچسب مفیدی برای کاربر نیستند؛
+      // فقط نوع‌های واقعی کلمه (فعل، اسم، صفت…) نشان داده می‌شوند.
+      const type = v.t && !/^(Konjugierte|Deklinierte)/.test(v.t) ? v.t : null;
+      return { word, persian: v.fa ?? '', type, article: v.a ?? null };
+    });
 }
 
 export type PersianSuggestion = { fa: string; de: string[] };
