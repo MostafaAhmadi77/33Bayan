@@ -54,6 +54,16 @@ function unionPersian(local: string | null, server: string | null): string | nul
   return items.length ? items.join('، ') : null;
 }
 
+/** سطح CEFR و بسامد DWDS از دیکشنری محلی به مدخل سرور اضافه می‌شود. */
+function withLocalMeta(entry: Entry): Entry {
+  const meta = lookupLocal(entry.word);
+  return {
+    ...entry,
+    cefr: entry.cefr ?? meta?.cefr ?? null,
+    frequency: entry.frequency ?? meta?.frequency ?? null,
+  };
+}
+
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -128,6 +138,9 @@ export default function ExploreScreen() {
             collocations: [],
             imageUrl: null,
             speak: local.word,
+            cefr: local.cefr,
+            frequency: local.frequency,
+            tatoebaExamples: [],
             local: true,
           };
           setEntry(localEntry);
@@ -141,13 +154,15 @@ export default function ExploreScreen() {
             if (seq !== searchSeq.current) return;
             if (r.found && r.entry) {
               setEntry({
-                ...r.entry,
+                ...withLocalMeta(r.entry),
                 // معنی فارسی: اجتماع همه‌ی معانیِ محلی و سرور، نه فقط یکی‌شان
                 persian: unionPersian(localEntry.persian, r.entry.persian),
                 type: r.entry.type ?? localEntry.type,
                 article: r.entry.article ?? localEntry.article,
                 plural: r.entry.plural ?? localEntry.plural,
                 pluralFull: r.entry.pluralFull || localEntry.pluralFull,
+                cefr: r.entry.cefr ?? localEntry.cefr,
+                frequency: r.entry.frequency ?? localEntry.frequency,
               });
             }
           } catch {
@@ -168,7 +183,7 @@ export default function ExploreScreen() {
           try {
             const r = await lookupPersian(q, true);
             if (seq !== searchSeq.current) return;
-            if (r.found && r.equivalents.length) setEquivalents(r.equivalents);
+            if (r.found && r.equivalents.length) setEquivalents(r.equivalents.map((eq) => ({ ...eq, entry: eq.entry ? withLocalMeta(eq.entry) : null })));
           } catch {
             // سرور نرسید؛ فهرست محلی سر جایش می‌ماند
           }
@@ -184,7 +199,7 @@ export default function ExploreScreen() {
           const r = await lookupGerman(q, true);
           if (seq !== searchSeq.current) return;
           if (r.found && r.entry) {
-            setEntry(r.entry);
+            setEntry(withLocalMeta(r.entry));
             setStatus('result');
             await pushRecent(r.entry.word);
             await setLastWord(r.entry.word);
@@ -195,7 +210,7 @@ export default function ExploreScreen() {
           const r = await lookupPersian(q, true);
           if (seq !== searchSeq.current) return;
           if (r.found && r.equivalents.length) {
-            setEquivalents(r.equivalents);
+            setEquivalents(r.equivalents.map((eq) => ({ ...eq, entry: eq.entry ? withLocalMeta(eq.entry) : null })));
             setStatus('result');
             await pushRecent(q);
           } else {
