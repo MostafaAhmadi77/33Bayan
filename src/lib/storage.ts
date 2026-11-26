@@ -31,12 +31,13 @@ export async function getActivity(): Promise<ActivityMap> {
   }
 }
 
-export async function logActivity(kind: 'review' | 'add') {
+export async function logActivity(kind: 'review' | 'add', count = 1) {
+  if (count <= 0) return;
   const map = await getActivity();
   const k = dayKey();
   const cur = map[k] || { reviews: 0, adds: 0 };
-  if (kind === 'review') cur.reviews += 1;
-  else cur.adds += 1;
+  if (kind === 'review') cur.reviews += count;
+  else cur.adds += count;
   map[k] = cur;
   await AsyncStorage.setItem(ACTIVITY_KEY, JSON.stringify(map));
 }

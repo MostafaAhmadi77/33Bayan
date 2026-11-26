@@ -213,3 +213,48 @@ export function suggestPersian(prefix: string, limit = 8): PersianSuggestion[] {
   );
   return matches.slice(0, limit).map((m) => ({ fa: m.fa, de: m.words.slice(0, 3) }));
 }
+
+// ---- داده‌ی بخش تمرین‌ها (آرتیکل، بسته‌های Goethe) ----
+
+export type CefrLevel = 'A1' | 'A2' | 'B1';
+export const CEFR_LEVELS: CefrLevel[] = ['A1', 'A2', 'B1'];
+
+/** نوع‌های «فرمی» ویکی‌واژه (صورت صرف‌شده/تصریف‌شده) مدخل مستقل حساب نمی‌شوند */
+const isFormType = (t?: string) => !!t && /^(Konjugierte|Deklinierte)/.test(t);
+
+const byFrequency = (a: LocalEntry, b: LocalEntry) =>
+  (b.frequency ?? 0) - (a.frequency ?? 0) || a.word.localeCompare(b.word, 'de');
+
+const levelCache = new Map<CefrLevel, LocalEntry[]>();
+
+/** همه‌ی کلمه‌های یک سطح Goethe (A1/A2/B1) از دیکشنری محلی، پرکاربردترها اول */
+export function wordsOfLevel(level: CefrLevel): LocalEntry[] {
+  const hit = levelCache.get(level);
+  if (hit) return hit;
+  const list: LocalEntry[] = [];
+  for (const [word, v] of Object.entries(DICT)) {
+    if (v.c !== level || !v.fa || isFormType(v.t)) continue;
+    list.push(entryFrom(word, v));
+  }
+  list.sort(byFrequency);
+  levelCache.set(level, list);
+  return list;
+}
+
+let nounCache: LocalEntry[] | null = null;
+
+/** اسم‌های دارای آرتیکل der/die/das با سطح A1 تا B1 — برای تمرین آرتیکل */
+export function articleNouns(level?: CefrLevel | null): LocalEntry[] {
+  if (!nounCache) {
+    nounCache = [];
+    for (const [word, v] of Object.entries(DICT)) {
+      if (!v.c || !v.fa || isFormType(v.t)) continue;
+      if (v.a !== 'der' && v.a !== 'die' && v.a !== 'das') continue;
+      // فقط اسم‌های تک‌کلمه‌ای با حرف اول بزرگ
+      if (!/^[A-ZÄÖÜ][\p{L}-]*$/u.test(word)) continue;
+      nounCache.push(entryFrom(word, v));
+    }
+    nounCache.sort(byFrequency);
+  }
+  return level ? nounCache.filter((n) => n.cefr === level) : nounCache;
+}
