@@ -29,6 +29,12 @@ function ThemedLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="conjugation" />
+        <Stack.Screen name="articles" />
+        <Stack.Screen name="word-packs" />
+        <Stack.Screen name="word-pack" />
+        <Stack.Screen name="verb-drill" />
+        <Stack.Screen name="cloze" />
+        <Stack.Screen name="pronunciation" />
       </Stack>
     </ThemeProvider>
   );

@@ -1,5 +1,5 @@
 // صفحه‌ی خانه (به سبک Lingua): ادامه‌ی مرور، هدف امروز، دسترسی سریع
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -20,10 +20,10 @@ type HomeData = {
 
 const EMPTY: HomeData = { due: 0, total: 0, lastWord: null, streak: 0, todayReviews: 0, goal: 10 };
 
-const TILES: { emoji: string; label: string; href: '/explore' | '/practice' | '/progress' }[] = [
+const TILES: { emoji: string; label: string; href: Href }[] = [
   { emoji: '📖', label: 'دیکشنری', href: '/explore' },
-  { emoji: '🔁', label: 'مرور لایتنر', href: '/practice' },
-  { emoji: '📝', label: 'ترجمه متن', href: '/practice' },
+  { emoji: '🔁', label: 'مرور لایتنر', href: { pathname: '/practice', params: { mode: 'review' } } },
+  { emoji: '📝', label: 'ترجمه متن', href: { pathname: '/practice', params: { mode: 'translate' } } },
   { emoji: '📊', label: 'پیشرفت من', href: '/progress' },
 ];
 
@@ -86,7 +86,7 @@ export default function HomeScreen() {
                   آخرین کلمه‌ات: <Text style={styles.lastWord}>{data.lastWord}</Text>
                 </Text>
               ) : null}
-              <Pressable style={styles.continueBtn} onPress={() => router.push('/practice')}>
+              <Pressable style={styles.continueBtn} onPress={() => router.push({ pathname: '/practice', params: { mode: 'review' } })}>
                 <Text style={styles.continueBtnText}>ادامه بده ←</Text>
               </Pressable>
             </>
