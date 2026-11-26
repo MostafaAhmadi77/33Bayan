@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenScroll } from '@/components/screen';
-import { GermanFlag } from '@/constants/theme';
 import { useLayoutSize } from '@/hooks/use-layout';
 import { leitnerDue, leitnerList } from '@/lib/api';
 import { useAppTheme, type AppTheme } from '@/lib/theme-context';
@@ -81,20 +80,12 @@ export default function HomeScreen() {
         {/* کارت ادامه */}
         <View style={styles.continueCard}>
           {isDark ? (
-            <>
-              <LinearGradient
-                colors={['#2C2C33', '#16161B']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              {/* نوار پرچم آلمان در پایین کارت */}
-              <View style={styles.flagStripe}>
-                {GermanFlag.map((c) => (
-                  <View key={c} style={{ flex: 1, backgroundColor: c }} />
-                ))}
-              </View>
-            </>
+            <LinearGradient
+              colors={['#6A4DF0', '#9B86FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0.6 }}
+              style={StyleSheet.absoluteFill}
+            />
           ) : null}
           {hasDue ? (
             <>
@@ -167,9 +158,8 @@ function makeStyles(colors: AppTheme['colors'], isDark: boolean) {
       padding: 20,
       marginTop: 20,
       overflow: 'hidden',
-      ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' } : null),
+      ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' } : null),
     },
-    flagStripe: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, flexDirection: 'row' },
     continueTitle: { fontSize: 19, fontWeight: '800', color: '#fff' },
     continueSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
     lastWord: { fontWeight: '700', color: '#fff', writingDirection: 'ltr' },
