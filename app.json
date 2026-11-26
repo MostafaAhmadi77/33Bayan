@@ -2,7 +2,7 @@
   "expo": {
     "name": "33Bayan",
     "slug": "33bayan",
-    "version": "1.9.0",
+    "version": "1.10.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bayan33",
@@ -36,7 +36,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "33Bayan برای تمرین تلفظ، صدای شما را ضبط می‌کند تا کنار صدای نمونه پخش شود.",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

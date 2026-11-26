@@ -1,6 +1,7 @@
-// صفحه‌ی تمرین: مرور جعبه‌ی لایتنر (فلش‌کارت) + ترجمه‌ی متن
+// صفحه‌ی تمرین: هاب «تمرین‌ها» — مرور جعبه‌ی لایتنر (فلش‌کارت) و ترجمه‌ی متن همین‌جا،
+// و تمرین‌های تازه (آرتیکل، بسته‌های Goethe، صرف فعل، جای خالی، تلفظ) هر کدام صفحه‌ی خودشان.
 import { Image } from 'expo-image';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,19 +16,49 @@ import { ScreenScroll } from '@/components/screen';
 import { SpeakButtons } from '@/components/speak-button';
 import { TappableSentence } from '@/components/tappable-sentence';
 import { WordPopup } from '@/components/word-popup';
+import { useLayoutSize } from '@/hooks/use-layout';
 import { leitnerDue, leitnerReview, translate, type LeitnerCard } from '@/lib/api';
 import { useAppTheme, type AppTheme } from '@/lib/theme-context';
 import { logActivity } from '@/lib/storage';
 
-type Mode = 'review' | 'translate';
+type Mode = 'hub' | 'review' | 'translate';
+
+type HubTile = {
+  emoji: string;
+  label: string;
+  desc: string;
+  mode?: Exclude<Mode, 'hub'>;
+  href?: Href;
+};
+
+const HUB_TILES: HubTile[] = [
+  { emoji: '🔁', label: 'مرور لایتنر', desc: 'کارت‌هایی که وقت مرورشان رسیده', mode: 'review' },
+  { emoji: '📝', label: 'ترجمه متن', desc: 'آلمانی ⇄ فارسی', mode: 'translate' },
+  { emoji: '🎨', label: 'آرتیکل der/die/das', desc: 'حدس آرتیکل اسم‌ها با رنگ', href: '/articles' },
+  { emoji: '📦', label: 'بسته‌های Goethe', desc: 'واژه‌های A1 تا B1 به لایتنر', href: '/word-packs' },
+  { emoji: '🔤', label: 'صرف فعل', desc: 'جدول صرف + تمرین جای خالی', href: '/verb-drill' },
+  { emoji: '✍️', label: 'جمله‌ی جای خالی', desc: 'کلمه‌ی گم‌شده در جمله‌ی واقعی', href: '/cloze' },
+  { emoji: '🎙️', label: 'تمرین تلفظ', desc: 'گوش بده، ضبط کن، مقایسه کن', href: '/pronunciation' },
+];
 type TranslateResult = { failed: boolean; text: string; from: string; to: string };
 
 export default function PracticeScreen() {
   const { colors, isDark } = useAppTheme();
   const styles = makeStyles(colors, isDark);
 
-  const [mode, setMode] = useState<Mode>('review');
+  const size = useLayoutSize();
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const [mode, setMode] = useState<Mode>('hub');
   const [popupWord, setPopupWord] = useState<string | null>(null);
+
+  // ورود مستقیم به یک حالت از صفحه‌ی خانه: /practice?mode=review
+  useEffect(() => {
+    const m = params.mode;
+    if (m === 'review' || m === 'translate' || m === 'hub') {
+      setMode(m);
+      router.setParams({ mode: undefined });
+    }
+  }, [params.mode]);
 
   // ---- مرور لایتنر ----
   const [queue, setQueue] = useState<LeitnerCard[]>([]);
@@ -103,9 +134,9 @@ export default function PracticeScreen() {
     }, [clearTranslation]),
   );
 
-  // باکس ترجمه هنگام برگشت از حالت ترجمه به حالت مرور هم خالی می‌شود
+  // باکس ترجمه هنگام ترک حالت ترجمه (به مرور یا هاب) هم خالی می‌شود
   useEffect(() => {
-    if (mode === 'review') clearTranslation();
+    if (mode !== 'translate') clearTranslation();
   }, [mode, clearTranslation]);
 
   const doTranslate = async () => {
@@ -129,27 +160,33 @@ export default function PracticeScreen() {
 
   return (
     <ScreenScroll>
-      <Text style={styles.title}>تمرین</Text>
+      {mode === 'hub' ? (
+        <>
+          <Text style={styles.title}>تمرین‌ها</Text>
+          <Text style={styles.hubSub}>یک تمرین انتخاب کن 👇</Text>
+          <View style={styles.hubGrid}>
+            {HUB_TILES.map((t) => (
+              <Pressable
+                key={t.label}
+                style={[styles.hubTile, size !== 'compact' && { width: '31%' }]}
+                onPress={() => (t.mode ? setMode(t.mode) : t.href ? router.push(t.href) : undefined)}>
+                <Text style={styles.hubEmoji}>{t.emoji}</Text>
+                <Text style={styles.hubLabel}>{t.label}</Text>
+                <Text style={styles.hubDesc}>{t.desc}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : (
+        <>
+          <Pressable onPress={() => setMode('hub')} style={styles.backRow}>
+            <Text style={styles.backText}>› تمرین‌ها</Text>
+          </Pressable>
+          <Text style={styles.title}>{mode === 'review' ? '🔁 مرور لایتنر' : '📝 ترجمه متن'}</Text>
+        </>
+      )}
 
-      {/* سوییچ حالت */}
-      <View style={styles.segment}>
-        <Pressable
-          onPress={() => setMode('review')}
-          style={[styles.segmentBtn, mode === 'review' && styles.segmentBtnActive]}>
-          <Text style={[styles.segmentText, mode === 'review' && styles.segmentTextActive]}>
-            🔁 مرور لایتنر
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setMode('translate')}
-          style={[styles.segmentBtn, mode === 'translate' && styles.segmentBtnActive]}>
-          <Text style={[styles.segmentText, mode === 'translate' && styles.segmentTextActive]}>
-            📝 ترجمه متن
-          </Text>
-        </Pressable>
-      </View>
-
-      {mode === 'review' ? (
+      {mode === 'hub' ? null : mode === 'review' ? (
         <>
           {loading ? (
             <View style={styles.centerBox}>
@@ -315,17 +352,23 @@ export default function PracticeScreen() {
 function makeStyles(colors: AppTheme['colors'], isDark: boolean) {
   return StyleSheet.create({
     title: { fontSize: 26, fontWeight: '800', color: colors.ink, marginBottom: 14 },
-    segment: {
-      flexDirection: 'row',
+    backRow: { alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 8 },
+    backText: { fontSize: 15, fontWeight: '700', color: colors.primaryDeep },
+    hubSub: { fontSize: 15, color: colors.secondary, marginTop: -6, marginBottom: 16 },
+    hubGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    hubTile: {
+      width: '47%',
+      flexGrow: 1,
       backgroundColor: colors.soft,
-      borderRadius: 999,
-      padding: 4,
-      marginBottom: 20,
+      borderRadius: colors.radius,
+      paddingVertical: 18,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      gap: 6,
     },
-    segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
-    segmentBtnActive: { backgroundColor: colors.primary },
-    segmentText: { fontSize: 14, fontWeight: '700', color: colors.secondary },
-    segmentTextActive: { color: '#fff' },
+    hubEmoji: { fontSize: 30 },
+    hubLabel: { fontSize: 15, fontWeight: '700', color: colors.ink, textAlign: 'center' },
+    hubDesc: { fontSize: 12.5, color: colors.secondary, textAlign: 'center', lineHeight: 19 },
     progress: { fontSize: 13, color: colors.secondary, marginBottom: 10 },
     card: { backgroundColor: colors.soft, borderRadius: colors.radius, padding: 18 },
     cardImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, marginBottom: 14, backgroundColor: colors.card },
