@@ -119,28 +119,26 @@ export const LightBrand: ThemeColors = {
 };
 
 export const DarkBrand: ThemeColors = {
-  // تم «Schwarz-Rot-Gold»: مشکیِ عمیق با درخشش رنگ‌های پرچم آلمان در پس‌زمینه
+  // تم «Berlin bei Nacht»: آسمان شب بنفش با ستاره‌ها و خط افق برلین در پس‌زمینه
   primary: '#8B76FF',
   primaryDeep: '#A99CFF',
-  soft: '#1C1C22',
-  chip: '#26262E',
-  ink: '#F4F4F6',
-  secondary: '#A0A0AE',
-  border: '#2A2A32',
+  soft: '#1A1B33',
+  chip: '#25264A',
+  ink: '#F4F4FA',
+  secondary: '#A3A4C4',
+  border: 'rgba(255,255,255,0.12)',
   success: '#34C77B',
-  amber: '#FFCE00',
+  amber: '#FFB020',
   danger: '#FF5A5A',
   radius: 20,
-  background: '#0B0B0F',
-  surface: '#17171C',
-  card: 'rgba(22,22,28,0.82)',
-  glass: 'rgba(255,255,255,0.06)',
-  glassBorder: 'rgba(255,255,255,0.10)',
-  chipTint: 'rgba(124,108,255,0.18)',
-  chipTintText: '#C9BCFF',
+  background: '#0E1022',
+  surface: '#1A1B33',
+  card: 'rgba(30,30,55,0.78)',
+  glass: 'rgba(255,255,255,0.07)',
+  glassBorder: 'rgba(255,255,255,0.14)',
+  chipTint: 'rgba(124,108,255,0.22)',
+  chipTintText: '#CFC4FF',
   chipGreen: 'rgba(64,200,150,0.16)',
   chipGreenText: '#8FE8C4',
 };
 
-/** رنگ‌های پرچم آلمان برای نوار تزئینی */
-export const GermanFlag = ['#1A1A1A', '#DD0000', '#FFCE00'] as const;
