@@ -15,6 +15,7 @@ import {
 } from '@/lib/storage';
 import { useAppTheme } from '@/lib/theme-context';
 
+import { SensesView } from './senses-view';
 import { SpeakButtons } from './speak-button';
 import { TappableSentence } from './tappable-sentence';
 import { TranslatableText } from './translatable-text';
@@ -191,6 +192,8 @@ export function EntryView({
         </View>
 
         {entry.persian ? <Text style={styles.persian}>{entry.persian}</Text> : null}
+
+        <SensesView word={entry.word} />
 
         {entry.formOf ? (
           <Text style={styles.formOfNote} selectable>
